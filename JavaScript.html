@@ -1,0 +1,408 @@
+<script>
+
+const CATEGORIES = [
+  { id:'academicos', label:'Indicadores Académicos', tabs:[
+      { id:'matricula', label:'Matrícula', dataset:'matricula' },
+      { id:'composicion', label:'Composición matrícula', dataset:'composicion_matricula' },
+      { id:'oferta', label:'Oferta académica', dataset:'oferta' },
+      { id:'retencion', label:'Retención 1er año', dataset:'retencion' },
+      { id:'tasa_titulacion', label:'Tasa de titulación', dataset:'tasa_titulacion' },
+      { id:'titulacion', label:'Titulados', dataset:'titulados' },
+      { id:'dotacion', label:'Dotación docente', dataset:'dotacion' },
+      { id:'jce', label:'JCE' },
+      { id:'comparacion', label:'Comparación' }
+    ]
+  },
+  { id:'administrativos', label:'Indicadores Administrativos', tabs:[] },
+  { id:'plan_mejora', label:'Plan de Mejora', tabs:[] },
+  { id:'sistema_calidad', label:'Sistema de Calidad', tabs:[] },
+  { id:'financieros', label:'Indicadores Financieros', tabs:[] },
+  { id:'otros', label:'Otros indicadores', tabs:[] }
+];
+
+let currentCategory = 'academicos';
+let currentTab = 'matricula';
+
+window.datasetCache = window.datasetCache || {};
+window.datasetMeta = window.datasetMeta || {};
+window.datasetAvailability = window.datasetAvailability || {};
+
+
+function currentCategoryObj(){
+  return CATEGORIES.find(c => c.id === currentCategory);
+}
+
+function renderCategoryBar(){
+  const bar = document.getElementById('categoryBar');
+
+  bar.innerHTML = CATEGORIES.map(c =>
+    `<button data-cat="${c.id}" class="${currentCategory===c.id?'active':''}">${c.label}</button>`
+  ).join('');
+
+  bar.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentCategory = btn.dataset.cat;
+      const cat = currentCategoryObj();
+      currentTab = cat.tabs.length ? cat.tabs[0].id : null;
+
+      cerrarPanelActualizacion_();
+      renderCategoryBar();
+      renderTabBar();
+      renderCurrentTab();
+    });
+  });
+}
+
+function renderTabBar(){
+  const bar = document.getElementById('tabBar');
+  const cat = currentCategoryObj();
+
+  if(!cat.tabs.length){
+    bar.innerHTML = '';
+    bar.style.display = 'none';
+    return;
+  }
+
+  bar.style.display = 'flex';
+  bar.innerHTML = cat.tabs.map(t => {
+    const clases = [];
+    const tieneDatos = !!(t.dataset && window.datasetAvailability[t.dataset]);
+
+    if (tieneDatos) {
+      clases.push('available');
+    }
+
+    // Solo un indicador que realmente tiene datos se enciende.
+    if (tieneDatos && currentTab === t.id) {
+      clases.push('active');
+    }
+
+    return `<button data-tab="${t.id}" class="${clases.join(' ')}">${t.label}</button>`;
+  }).join('');
+
+  bar.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentTab = btn.dataset.tab;
+
+      cerrarPanelActualizacion_();
+      renderTabBar();
+      renderCurrentTab();
+    });
+  });
+}
+
+function configurarToggleActualizacion_(){
+  const boton = document.getElementById('toggleUploadBtn');
+  const panel = document.getElementById('uploadPanel');
+
+  if (!boton || !panel) return;
+
+  boton.addEventListener('click', function(){
+    panel.hidden = !panel.hidden;
+    actualizarTextoToggle_();
+  });
+
+  actualizarTextoToggle_();
+}
+
+function actualizarTextoToggle_(){
+  const boton = document.getElementById('toggleUploadBtn');
+  const panel = document.getElementById('uploadPanel');
+
+  if (!boton || !panel) return;
+
+  boton.textContent = panel.hidden
+    ? '↻ Actualizar registros'
+    : '× Ocultar actualización';
+}
+
+function cerrarPanelActualizacion_(){
+  const panel = document.getElementById('uploadPanel');
+  if (panel) panel.hidden = true;
+  actualizarTextoToggle_();
+}
+
+function cargarOpcionesFiltro_(id, valores, etiquetaTodos){
+  const select = document.getElementById(id);
+  if (!select) return;
+
+  select.innerHTML =
+    `<option value="">${etiquetaTodos}</option>` +
+    (valores || []).map(valor =>
+      `<option value="${escapeHtml_(valor)}">${escapeHtml_(valor)}</option>`
+    ).join('');
+
+  select.disabled = false;
+}
+
+function obtenerValorFiltro_(id){
+  const control = document.getElementById(id);
+  return control ? control.value : '';
+}
+
+function dibujarBarras_(id, datos, limite){
+  const contenedor = document.getElementById(id);
+  if (!contenedor) return;
+
+  const items = (datos || []).slice(0, limite || 12);
+
+  if (!items.length) {
+    contenedor.innerHTML =
+      '<div class="chart-empty">No hay datos para la selección actual.</div>';
+    return;
+  }
+
+  const maximo = Math.max(...items.map(item => item.valor), 1);
+
+  contenedor.innerHTML = items.map(function(item){
+    const porcentaje = Math.max(2, (item.valor / maximo) * 100);
+
+    return `
+      <div class="bar-row">
+        <div class="bar-label" title="${escapeHtml_(item.etiqueta)}">
+          ${escapeHtml_(item.etiqueta)}
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${porcentaje.toFixed(2)}%"></div>
+        </div>
+        <div class="bar-value">${formatearNumero_(item.valor)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function cantidadUnicos_(registros, campo){
+  return new Set(
+    registros
+      .map(registro => String(registro[campo] || '').trim())
+      .filter(Boolean)
+  ).size;
+}
+
+function formatearNumero_(valor){
+  return Number(valor || 0).toLocaleString('es-CL');
+}
+
+function asignarTexto_(id, texto){
+  const elemento = document.getElementById(id);
+  if (elemento) elemento.textContent = texto;
+}
+
+function escapeHtml_(valor){
+  return String(valor)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function cargarOpcionesFiltroEtiquetadas_(id, valores, etiquetaTodos, etiquetador){
+  const select = document.getElementById(id);
+  if (!select) return;
+
+  select.innerHTML =
+    `<option value="">${etiquetaTodos}</option>` +
+    (valores || []).map(function(valor){
+      const etiqueta = etiquetador ? etiquetador(valor) : valor;
+      return `<option value="${escapeHtml_(valor)}">${escapeHtml_(etiqueta)}</option>`;
+    }).join('');
+
+  select.disabled = false;
+}
+
+function numeroGenerico_(valor){
+  const limpio = String(valor === null || valor === undefined ? '' : valor)
+    .trim()
+    .replace(/[^\d-]/g, '');
+
+  const numero = Number(limpio);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function extraerAnoFrontend_(valor){
+  const texto = String(valor || '');
+  const match = texto.match(/(19|20)\d{2}/);
+  return match ? match[0] : texto;
+}
+
+function descargarCsv_(tipo){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      if (!respuesta || !respuesta.disponible) {
+        return;
+      }
+
+      const contenido = '\uFEFF' + respuesta.contenido;
+      const blob = new Blob([contenido], {
+        type:'text/csv;charset=utf-8'
+      });
+
+      const url = URL.createObjectURL(blob);
+      const enlace = document.createElement('a');
+
+      enlace.href = url;
+      enlace.download = respuesta.archivo;
+      document.body.appendChild(enlace);
+      enlace.click();
+      enlace.remove();
+
+      setTimeout(function(){
+        URL.revokeObjectURL(url);
+      }, 1000);
+    })
+    .withFailureHandler(function(error){
+      console.error('No fue posible descargar el CSV:', error);
+    })
+    .obtenerCsvDescarga(tipo);
+}
+
+function refrescarEstadoDatasets_(callback){
+  google.script.run
+    .withSuccessHandler(function(estado){
+      window.datasetAvailability = estado || {};
+      renderTabBar();
+
+      if (typeof callback === 'function') {
+        callback();
+      }
+    })
+    .withFailureHandler(function(error){
+      console.error('No fue posible obtener el estado de datasets:', error);
+
+      if (typeof callback === 'function') {
+        callback();
+      }
+    })
+    .obtenerEstadoDatasets();
+}
+
+
+function renderCurrentTab(){
+  const cat = currentCategoryObj();
+  const content = document.getElementById('tabContent');
+
+  if(!cat.tabs.length){
+    content.innerHTML =
+      `<div class="category-empty">Todavía no hay indicadores cargados en "${cat.label}".</div>`;
+    return;
+  }
+
+  const tab = cat.tabs.find(t => t.id === currentTab);
+
+  if (
+    currentCategory === 'academicos' &&
+    typeof renderIndicadorAcademico_ === 'function' &&
+    renderIndicadorAcademico_(currentTab)
+  ) {
+    return;
+  }
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">${tab.label}</div>
+            <button type="button" class="download-link disabled" disabled>
+              Descargar CSV
+            </button>
+          </div>
+          <div class="dataset-view-subtitle">
+            Este indicador todavía no tiene datos procesables cargados.
+          </div>
+        </div>
+      </div>
+      <div class="category-empty">Indicador pendiente de implementación.</div>
+    </main>`;
+}
+
+
+
+function configurarCargaDataset(){
+  const input = document.getElementById('datasetFile');
+  const boton = document.getElementById('datasetUploadBtn');
+  const estado = document.getElementById('datasetUploadStatus');
+  const panel = document.getElementById('uploadPanel');
+
+  if (!input || !boton || !estado || !panel) return;
+
+  boton.addEventListener('click', () => {
+    if (!input.files || input.files.length === 0) {
+      estado.textContent = 'Seleccione un archivo CSV.';
+      return;
+    }
+
+    const archivo = input.files[0];
+    const tipo = panel.dataset.tipoDataset || '';
+
+    if (!tipo) {
+      estado.textContent = 'No se pudo determinar el tipo de dataset.';
+      return;
+    }
+
+    if (!archivo.name.toLowerCase().endsWith('.csv')) {
+      estado.textContent = 'El archivo seleccionado debe ser CSV.';
+      return;
+    }
+
+    estado.textContent = 'Leyendo archivo...';
+    boton.disabled = true;
+
+    const lector = new FileReader();
+
+    lector.onload = function(evento) {
+      const contenidoCSV = evento.target.result;
+      estado.textContent = 'Validando y actualizando registros...';
+
+      google.script.run
+        .withSuccessHandler(function(respuesta) {
+          estado.textContent =
+            `Actualización correcta: ` +
+            `${respuesta.cantidadRegistros.toLocaleString('es-CL')} registros, ` +
+            `${respuesta.cantidadColumnas.toLocaleString('es-CL')} columnas.`;
+
+          input.value = '';
+          boton.disabled = false;
+          cerrarPanelActualizacion_();
+
+          if (typeof recargarIndicadorAcademico_ === 'function') {
+            recargarIndicadorAcademico_(tipo);
+          }
+
+          refrescarEstadoDatasets_();
+        })
+        .withFailureHandler(function(error) {
+          estado.textContent =
+            'Error al actualizar: ' +
+            (error && error.message ? error.message : String(error));
+          boton.disabled = false;
+        })
+        .actualizarDataset(tipo, contenidoCSV, archivo.name);
+    };
+
+    lector.onerror = function() {
+      estado.textContent = 'No fue posible leer el archivo seleccionado.';
+      boton.disabled = false;
+    };
+
+    lector.readAsText(archivo, 'windows-1252');
+  });
+}
+
+
+
+function init(){
+  configurarCargaDataset();
+  renderCategoryBar();
+
+  refrescarEstadoDatasets_(function(){
+    renderTabBar();
+    renderCurrentTab();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', init);
+
+
+</script>

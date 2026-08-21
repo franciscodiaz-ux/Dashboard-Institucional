@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>CFT Laplace — Prototipo Matrícula</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F6F3; --surface:#FFFFFF; --ink:#1B2422; --ink-muted:#5B655F;
+    --line:#D3D8D1; --line-soft:#E6E9E3;
+    --navy:#1E3A52; --navy-soft:#E9EEF1;
+    --teal:#2F7A6E; --teal-soft:#E4F1EE;
+    --rust:#A3492C; --rust-soft:#F5E9E3;
+    --amber:#8A6A1E; --amber-soft:#F3ECD9;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);}
+  body{font-family:'Calibri', sans-serif; -webkit-font-smoothing:antialiased; padding:0 0 60px 0;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .ruler{
+    height:20px; width:100%;
+    background:repeating-linear-gradient(to right, var(--line) 0, var(--line) 1px, transparent 1px, transparent 40px);
+    border-bottom:1px solid var(--line);
+  }
+  header.top{ max-width:1180px; margin:0 auto; padding:32px 28px 16px 28px; }
+  .eyebrow{
+    font-family:'Calibri', sans-serif; font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--navy); display:flex; align-items:center; gap:10px;
+  }
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--teal);display:inline-block;}
+  .brand-row{ display:flex; align-items:center; gap:14px; }
+  .brand-row img{ height:40px; width:auto; display:block; }
+  h1{ font-family:'Calibri', sans-serif; font-weight:600; font-size:32px; line-height:1.1; margin:8px 0 4px 0; }
+  .sub{ color:var(--ink-muted); font-size:14px; max-width:680px; line-height:1.5; }
+
+  .panel{
+    max-width:1180px; margin:24px auto 0 auto; padding:20px 24px;
+    background:var(--surface); border:1px solid var(--line); border-radius:4px;
+  }
+  .panel-title{ font-family:'Calibri', sans-serif; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-muted); margin-bottom:14px; }
+  .filters-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(170px,1fr)); gap:14px; }
+  .filter-item label{ display:block; font-family:'Calibri', sans-serif; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-muted); margin-bottom:6px; }
+  .filter-item select{
+    width:100%; font-family:'Calibri', sans-serif; font-size:13.5px; padding:8px 10px;
+    border:1px solid var(--line); border-radius:3px; background:var(--surface); color:var(--ink);
+  }
+  .filter-item select:disabled{ background:var(--line-soft); color:var(--ink-muted); cursor:not-allowed; }
+  .pending-tag{
+    display:inline-block; margin-top:4px; font-size:10px; font-family:'Calibri', sans-serif;
+    color:var(--amber); background:var(--amber-soft); padding:1px 5px; border-radius:2px;
+  }
+
+  .info-box{
+    max-width:1180px; margin:0 auto; padding:16px 24px;
+    background:var(--navy-soft); border-left:3px solid var(--navy); border-radius:0 4px 4px 0;
+  }
+  .info-box-title{
+    font-family:'Calibri', sans-serif; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--navy); margin-bottom:6px;
+  }
+  .info-box-text{ font-size:13px; line-height:1.55; color:var(--ink); max-width:820px; }
+  .info-box-text b{ font-weight:600; }
+
+  .view-toggle{ display:flex; gap:0; margin-top:18px; border:1px solid var(--line); border-radius:3px; overflow:hidden; width:fit-content; }
+  .view-toggle button{
+    font-family:'Calibri', sans-serif; font-size:13.5px; padding:9px 18px; border:none;
+    background:var(--surface); color:var(--ink-muted); cursor:pointer; border-right:1px solid var(--line-soft);
+  }
+  .view-toggle button:last-child{border-right:none;}
+  .view-toggle button.active{ background:var(--navy); color:#fff; }
+
+  .year-select-wrap{ margin-top:14px; display:none; align-items:center; gap:10px; }
+  .year-select-wrap.show{ display:flex; }
+  .year-select-wrap label{ font-family:'Calibri', sans-serif; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-muted); }
+  .year-select-wrap select{ font-family:'IBM Plex Mono', monospace; font-size:14px; padding:6px 10px; border:1px solid var(--line); border-radius:3px; }
+
+  .series-row{
+    display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;
+    padding:14px 0; border-bottom:1px solid var(--line-soft);
+  }
+  .series-row:last-of-type{ border-bottom:none; }
+  .series-swatch{ width:10px; height:10px; border-radius:50%; margin-bottom:9px; flex-shrink:0; }
+  .series-field{ display:flex; flex-direction:column; gap:5px; min-width:130px; }
+  .series-field label{ font-family:'Calibri', sans-serif; font-size:10px; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-muted); }
+  .series-field select{
+    font-family:'Calibri', sans-serif; font-size:13px; padding:7px 9px;
+    border:1px solid var(--line); border-radius:3px; background:var(--surface); color:var(--ink);
+  }
+  .series-field select:disabled{ background:var(--line-soft); color:var(--ink-muted); }
+  .remove-series-btn{
+    font-family:'Calibri', sans-serif; font-size:11px; color:var(--rust); background:var(--rust-soft);
+    border:none; border-radius:3px; padding:7px 10px; cursor:pointer; margin-bottom:1px;
+  }
+  .add-series-btn{
+    margin-top:14px; font-family:'Calibri', sans-serif; font-size:13.5px; padding:9px 16px;
+    border:1px dashed var(--navy); border-radius:3px; background:var(--navy-soft); color:var(--navy); cursor:pointer;
+  }
+  .add-series-btn:disabled{ opacity:.4; cursor:not-allowed; }
+
+  .category-bar{
+    max-width:1180px; margin:28px auto 0 auto; padding:0 28px;
+    display:flex; flex-wrap:wrap; gap:8px;
+  }
+  .category-bar button{
+    font-family:'Calibri', sans-serif; font-weight:600; font-size:15px; padding:12px 20px;
+    border:1px solid var(--line); border-radius:4px 4px 0 0; border-bottom:none;
+    background:var(--line-soft); color:var(--ink-muted); cursor:pointer;
+  }
+  .category-bar button:hover{ background:var(--navy-soft); color:var(--navy); }
+  .category-bar button.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .category-empty{
+    max-width:1180px; margin:20px auto 0 auto; padding:32px 28px;
+    text-align:center; color:var(--ink-muted); font-size:14px; font-style:italic;
+    border:1px dashed var(--line); border-radius:4px;
+  }
+
+  .tab-bar{
+    max-width:1180px; margin:24px auto 0 auto; padding:0 28px;
+    display:flex; flex-wrap:wrap; gap:4px; border-bottom:1px solid var(--line); align-items:stretch;
+  }
+  .tab-bar button{
+    font-family:'Calibri', sans-serif; font-size:12px; line-height:1.25; padding:8px 14px;
+    border:none; background:transparent; color:var(--ink-muted); cursor:pointer;
+    border-bottom:2px solid transparent; margin-bottom:-1px;
+    max-width:110px; white-space:normal; text-align:center;
+  }
+  .tab-bar button:hover{ color:var(--ink); }
+  .tab-bar button.active{ color:var(--navy); border-bottom-color:var(--navy); font-weight:600; }
+
+  .color-swatch-btn{
+    width:16px; height:16px; border-radius:50%; border:1px solid var(--line);
+    cursor:pointer; padding:0; margin-bottom:9px; flex-shrink:0;
+  }
+
+  main{ max-width:1180px; margin:0 auto; padding:0 28px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(460px, 1fr)); gap:18px; margin-top:22px; }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:4px; padding:20px; }
+  .card-title-row{ display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+  .card-title{ font-size:15px; font-weight:600; margin-bottom:0; }
+  .info-icon-btn{
+    width:18px; height:18px; border-radius:50%; border:1px solid var(--navy); background:var(--navy-soft);
+    color:var(--navy); font-family:'Calibri', sans-serif; font-size:11px; line-height:1;
+    cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0;
+  }
+  .info-icon-btn:hover{ background:var(--navy); color:#fff; }
+  .card-scope{ font-size:12px; color:var(--ink-muted); margin-bottom:14px; line-height:1.9; }
+  .card-scope span{ display:block; }
+  .n-flag{ font-family:'Calibri', sans-serif; font-size:10.5px; color:var(--rust); background:var(--rust-soft); padding:2px 6px; border-radius:2px; display:inline-block; margin-bottom:10px; }
+
+  .bignum-row{ display:flex; align-items:baseline; gap:12px; margin-bottom:12px; }
+  .bignum{ font-family:'IBM Plex Mono', monospace; font-size:36px; font-weight:500; }
+  .bignum-label{ font-size:12.5px; color:var(--ink-muted); }
+
+  svg.chart{ width:100%; height:auto; display:block; }
+  .legend{ display:flex; gap:16px; margin-top:8px; font-size:11.5px; color:var(--ink-muted); }
+  .legend-item{ display:flex; align-items:center; gap:5px; }
+  .legend-swatch{ width:8px; height:8px; border-radius:50%; display:inline-block; }
+
+  footer{
+    max-width:1180px; margin:50px auto 0 auto; padding:16px 28px 0 28px; border-top:1px solid var(--line);
+    font-size:12px; color:var(--ink-muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="ruler"></div>
+
+<header class="top">
+  <div class="brand-row">
+    <img src="data:image/png;base64,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" alt="CFT Laplace">
+    <div class="eyebrow"><span class="dot"></span>DIRECCIÓN DE ASEGURAMIENTO DE LA CALIDAD</div>
+  </div>
+  <h1>Dashboard Institucional</h1>
+</header>
+
+<div class="category-bar" id="categoryBar"></div>
+<div class="tab-bar" id="tabBar"></div>
+
+<div id="tabContent"></div>
+
+<footer>
+
+  Fuentes: SIES matrícula histórica (2007–2026), SIES oferta académica histórica (2010–2026), y desglose Añocarrera 2023–2024 (informes internos de matrícula por nivel), CFT Laplace. Sedes "Casa Central (Santiago)" y "San Felipe" están cerradas — se conservan para contexto histórico.
+</footer>
+
+<script>
+let RECORDS = [];;
+</script>
+<script>
+let OFERTA_RECORDS = [];;
+</script>
+<script>
+let ANIOCARRERA_RECORDS = [];;
+const FICHA_INDICATORS = {"retencion": {"title": "Retención 1er año", "def": "<b>Tasa de retención de 1er año</b> es el porcentaje de estudiantes que ingresan como cohorte de primer año en un año determinado y que se mantienen matriculados en la institución al año siguiente. Fuente: Ficha Institucional de Datos (2020–2025) — desgloses marginales, no combinables ni por carrera individual."}, "egreso": {"title": "Tasa de egreso", "def": "<b>Tasa de egreso</b> corresponde al porcentaje de estudiantes de una cohorte de ingreso que aprueba todas las actividades curriculares de su plan de estudios (queda \"egresado\"), sin incluir necesariamente el proceso de titulación. Aplica a programas de 2 a 3 años. Fuente: Ficha Institucional de Datos (2019–2023) — desgloses marginales, no combinables ni por carrera individual. Sin inconsistencias detectadas entre las filas de referencia de la Ficha."}, "titulacion": {"title": "Tasa de titulación", "variants": {"tercer_anio": {"label": "Al tercer año"}, "oportuna": {"label": "Oportuna (n+1)"}}, "def": "<b>Tasa de titulación</b> mide el porcentaje de una cohorte de ingreso que efectivamente se titula. La Ficha reporta dos variantes: <b>\"Al tercer año\"</b> (titulados medidos 3 años después de la titulación teórica de la cohorte) y <b>\"Oportuna\"</b> (medida solo 1 año después). Cohortes 2017–2021, programas de 2–3 años. Nota: en la variante \"Al tercer año\", el valor institucional de 2019 (51,4%) no coincide con la fila Presencial/Vespertina del mismo año (49,2%) — inconsistencia propia de la Ficha, no corregida aquí."}, "dotacion": {"title": "Dotación docente", "def": "<b>Dotación docente</b> es el número de académicos/docentes con contrato vigente en la institución (fecha de corte: 31 de mayo de cada año). Fuente: Ficha Institucional de Datos (2021–2025). La desagregación por <b>Sexo</b> es estimada: la Ficha solo informa el % de mujeres por categoría, por lo que aquí se redondeó ese porcentaje sobre el total para aproximar el número de personas — no es un conteo directo. <b>Doctorado</b> y <b>Sin título</b> se excluyeron por no tener docentes registrados en ningún año. <b>Tipo de contrato</b> no se incluye porque el 100% de la dotación está contratada a honorarios en todos los años (sin variación que mostrar)."}, "jce": {"title": "Jornada Completa Equivalente (JCE)", "def": "<b>JCE (Jornada Completa Equivalente)</b> es una unidad de comparación de la dedicación horaria del cuerpo docente: se obtiene dividiendo el total de horas semanales contratadas por 40 (una jornada completa). No es lo mismo que el número de docentes (ver pestaña Dotación docente) — un mismo headcount puede tener distinta JCE según cuántas horas tenga contratada cada persona. Fuente: Ficha Institucional de Datos (2021–2025), solo disponible a nivel institucional, sin desagregación por sede, jornada, área o sexo."}};;
+const FICHA_INDICATORS_UNUSED_PLACEHOLDER = null;
+/* ============================================================
+   CARGA DE DATOS EN VIVO DESDE DRIVE
+   ============================================================ */
+const DATA_SOURCES = {
+  matricula:  '1THJDhMDyDvT6VLoT_2m4dwu5xtzIVobX',
+  oferta:     '1qYbSZ9KmvhDQX5ZGOqWgXX22aGunScIY',
+  retencion:  '19Bjv0FQVtcelm_6AmspgD7q9HS99Wrzm',
+  egreso:     '1ZUzll5gr2vn-QDn-EYb2JzHmoWdbijCX',
+  titulacion: null,
+  dotacion:   '120r4S3XsSloUuglhr7HNkzn2w75wTsVM',
+  jce:        '1MhdHNv3VTdUYtU2B9DnywGoAFUuEBaNB',
+  anocarrera: '1sYTYerXjixAfH4OMsWC9TvEWbsfrPZ-z'
+};
+const DATA_LABELS = {
+  matricula:'Matrícula', oferta:'Oferta académica', retencion:'Retención',
+  egreso:'Egreso', titulacion:'Titulación', dotacion:'Dotación docente',
+  jce:'JCE', anocarrera:'Añocarrera'
+};
+
+function driveCsvUrl(fileId){
+  return `https://drive.google.com/uc?export=download&id=${fileId}`;
+}
+
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.trim().length>0);
+  if(lines.length<1) return [];
+  const headers = lines[0].split(',').map(h=>h.trim());
+  return lines.slice(1).map(line=>{
+    const cells = line.split(',');
+    const obj = {};
+    headers.forEach((h,i)=>{ obj[h] = cells[i]!==undefined ? cells[i].trim() : ''; });
+    return obj;
+  });
+}
+
+async function fetchCSV(fileId){
+  const res = await fetch(driveCsvUrl(fileId));
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const text = await res.text();
+  if(text.trim().startsWith('<')) throw new Error('Respuesta no es CSV (posible falta de permisos "Cualquiera con el enlace")');
+  return parseCSV(text);
+}
+
+async function loadMatricula(){
+  const rows = await fetchCSV(DATA_SOURCES.matricula);
+  RECORDS = rows.map(r=>({
+    year:Number(r.year), sede:r.sede, carrera:r.carrera, area:r.area, jornada:r.jornada,
+    total:Number(r.total)||0, mujeres:Number(r.mujeres)||0, hombres:Number(r.hombres)||0,
+    primer_anio:Number(r.primer_anio)||0, primer_anio_mujeres:Number(r.primer_anio_mujeres)||0, primer_anio_hombres:Number(r.primer_anio_hombres)||0,
+    edad_15_19:Number(r.edad_15_19)||0, edad_20_24:Number(r.edad_20_24)||0, edad_25_29:Number(r.edad_25_29)||0,
+    edad_30_34:Number(r.edad_30_34)||0, edad_35_39:Number(r.edad_35_39)||0, edad_40_mas:Number(r.edad_40_mas)||0,
+    clas_adulto:Number(r.clas_adulto)||0, clas_joven:Number(r.clas_joven)||0
+  }));
+}
+
+async function loadOferta(){
+  const rows = await fetchCSV(DATA_SOURCES.oferta);
+  OFERTA_RECORDS = rows.map(r=>({
+    year:Number(r.year), sede:r.sede, carrera:r.carrera, area:r.area, jornada:r.jornada, vacantes:Number(r.vacantes)||0
+  }));
+}
+
+async function loadAniocarrera(){
+  const rows = await fetchCSV(DATA_SOURCES.anocarrera);
+  ANIOCARRERA_RECORDS = rows.map(r=>({
+    year:Number(r.year), sede:r.sede, jornada:r.jornada, carrera:r.carrera,
+    primer:Number(r.primer)||0, segundo:Number(r.segundo)||0, pt:Number(r.pt)||0, total:Number(r.total)||0
+  }));
+}
+
+function buildDimsFromRows(rows){
+  const years = [...new Set(rows.map(r=>Number(r.year)))].sort((a,b)=>a-b);
+  const dims = {};
+  rows.forEach(r=>{
+    const dim = r.desagregacion, cat = r.categoria;
+    if(!dims[dim]) dims[dim] = {};
+    if(!dims[dim][cat]) dims[dim][cat] = years.map(()=>null);
+    const idx = years.indexOf(Number(r.year));
+    dims[dim][cat][idx] = (r.valor===undefined || r.valor==='') ? null : Number(r.valor);
+  });
+  return {years, dims};
+}
+
+async function loadSimpleFicha(key){
+  const rows = await fetchCSV(DATA_SOURCES[key]);
+  const {years, dims} = buildDimsFromRows(rows);
+  FICHA_INDICATORS[key].years = years;
+  FICHA_INDICATORS[key].dims = dims;
+}
+
+async function loadTitulacion(){
+  if(!DATA_SOURCES.titulacion) throw new Error('Archivo titulacion.csv aún no subido a Drive');
+  const rows = await fetchCSV(DATA_SOURCES.titulacion);
+  const byVariant = {};
+  rows.forEach(r=>{
+    if(!byVariant[r.variante]) byVariant[r.variante] = [];
+    byVariant[r.variante].push(r);
+  });
+  Object.keys(byVariant).forEach(vkey=>{
+    const {years, dims} = buildDimsFromRows(byVariant[vkey]);
+    if(!FICHA_INDICATORS.titulacion.variants[vkey]) FICHA_INDICATORS.titulacion.variants[vkey] = {label: vkey};
+    FICHA_INDICATORS.titulacion.variants[vkey].years = years;
+    FICHA_INDICATORS.titulacion.variants[vkey].dims = dims;
+  });
+}
+
+const LOADERS = {
+  matricula: loadMatricula,
+  oferta: loadOferta,
+  anocarrera: loadAniocarrera,
+  retencion: ()=>loadSimpleFicha('retencion'),
+  egreso: ()=>loadSimpleFicha('egreso'),
+  dotacion: ()=>loadSimpleFicha('dotacion'),
+  jce: ()=>loadSimpleFicha('jce'),
+  titulacion: loadTitulacion
+};
+
+let DATA_LOAD_ERRORS = [];
+
+async function loadAllData(){
+  const keys = Object.keys(LOADERS);
+  const results = await Promise.allSettled(keys.map(k=>LOADERS[k]()));
+  DATA_LOAD_ERRORS = [];
+  results.forEach((r,i)=>{
+    if(r.status==='rejected'){
+      DATA_LOAD_ERRORS.push({ key: keys[i], label: DATA_LABELS[keys[i]], message: r.reason ? r.reason.message : 'Error desconocido' });
+    }
+  });
+}
+
+function renderLoadErrorBanner(){
+  if(DATA_LOAD_ERRORS.length===0) return '';
+  const items = DATA_LOAD_ERRORS.map(e=>`<li><b>${e.label}</b>: ${e.message}</li>`).join('');
+  return `<div style="max-width:1180px; margin:16px auto 0 auto; padding:14px 20px; background:var(--rust-soft); border-left:3px solid var(--rust); border-radius:0 4px 4px 0; font-size:13px; color:var(--ink);">
+    <b>No se pudieron cargar estos indicadores desde Drive:</b>
+    <ul style="margin:6px 0 0 18px; padding:0;">${items}</ul>
+  </div>`;
+}
+
+const COLORS = ['#2F7A6E','#1E3A52','#A3492C','#8A6A1E'];
+const MAX_SERIES = 4;
+
+function uniqueSorted(arr){ return [...new Set(arr)].sort(); }
+function shortCarrera(c){ return c.length>34 ? c.slice(0,34)+'…' : c; }
+
+/* ============================================================
+   TAB DEFINITIONS
+   ============================================================ */
+const CATEGORIES = [
+  { id:'academicos', label:'Indicadores Académicos', tabs:[
+      { id:'matricula', label:'Matrícula' },
+      { id:'oferta', label:'Oferta académica' },
+      { id:'retencion', label:'Retención 1er año' },
+      { id:'egreso', label:'Tasa de egreso' },
+      { id:'titulacion', label:'Tasa de titulación' },
+      { id:'dotacion', label:'Dotación docente' },
+      { id:'jce', label:'JCE' },
+      { id:'comparacion', label:'Comparación' }
+    ]
+  },
+  { id:'administrativos', label:'Indicadores Administrativos', tabs:[] },
+  { id:'plan_mejora', label:'Plan de Mejora', tabs:[] },
+  { id:'sistema_calidad', label:'Sistema de Calidad', tabs:[] },
+  { id:'financieros', label:'Indicadores Financieros', tabs:[] },
+  { id:'otros', label:'Otros indicadores', tabs:[] }
+];
+let currentCategory = 'academicos';
+function currentCategoryObj(){ return CATEGORIES.find(c=>c.id===currentCategory); }
+let currentTab = 'matricula';
+
+const INDICATOR_DEFS = {
+  matricula: {
+    title: '¿Qué mide este indicador?',
+    text: '<b>Matrícula</b> es el número de estudiantes con inscripción vigente en un programa de la institución, en un año calendario determinado, según lo reportado al SIES. <b>Matrícula total</b> incluye a todos los estudiantes vigentes ese año, sin importar en qué año de la carrera estén. <b>Matrícula 1er año</b> (o "matrícula nueva") cuenta solo a quienes ingresaron por primera vez ese año. Es la base para calcular otros indicadores, como ocupación de vacantes o retención.'
+  },
+  oferta: {
+    title: '¿Qué mide este indicador?',
+    text: '<b>Oferta académica</b> es el número de vacantes que la institución pone a disposición para estudiantes nuevos en un año determinado, también reportado al SIES. Por sí sola indica la capacidad que la institución decidió ofrecer; cruzada con Matrícula 1er año (ver pestaña Comparación) permite calcular la <b>tasa de ocupación de vacantes</b> y distinguir si una caída de matrícula responde a menor demanda o a una decisión institucional de ofertar menos cupos.'
+  }
+};
+
+/* ============================================================
+   SINGLE-INDICATOR TABS (Matrícula / Oferta)
+   ============================================================ */
+const singleState = {
+  matricula: { sede:'todas', carrera:'todas', jornada:'todas', sexo:'total', indicador:'total', anocarrera:'todas', view:'progresion', corteYear:null, infoOpen:false },
+  oferta:    { sede:'todas', carrera:'todas', jornada:'todas', view:'progresion', corteYear:null, infoOpen:false }
+};
+
+function isAnioActive(tabId){
+  return tabId==='matricula' && singleState.matricula.anocarrera!=='todas';
+}
+
+function datasetForTab(tabId){
+  if(tabId==='oferta') return OFERTA_RECORDS;
+  if(isAnioActive(tabId)) return ANIOCARRERA_RECORDS;
+  return RECORDS;
+}
+
+function filteredSingle(tabId){
+  const st = singleState[tabId];
+  return datasetForTab(tabId).filter(r=>
+    (st.sede==='todas'||r.sede===st.sede) &&
+    (st.carrera==='todas'||r.carrera===st.carrera) &&
+    (st.jornada==='todas'||r.jornada===st.jornada)
+  );
+}
+
+function singleValue(r, tabId){
+  const st = singleState[tabId];
+  if(tabId==='oferta') return r.vacantes||0;
+  if(isAnioActive(tabId)) return r[st.anocarrera]||0;
+  const base = st.indicador==='total' ? {t:r.total, m:r.mujeres, h:r.hombres}
+                                        : {t:r.primer_anio, m:r.primer_anio_mujeres, h:r.primer_anio_hombres};
+  if(st.sexo==='mujeres') return base.m||0;
+  if(st.sexo==='hombres') return base.h||0;
+  return base.t||0;
+}
+
+function singleAggregate(tabId, sexoMode){
+  const records = filteredSingle(tabId);
+  const years = uniqueSorted(records.map(r=>r.year));
+  const out = {};
+  years.forEach(y=>{
+    const rows = records.filter(r=>r.year===y);
+    if(sexoMode==='comparar' && !isAnioActive(tabId)){
+      const savedSexo = singleState[tabId].sexo;
+      singleState[tabId].sexo='mujeres';
+      const m = rows.reduce((s,r)=>s+singleValue(r,tabId),0);
+      singleState[tabId].sexo='hombres';
+      const h = rows.reduce((s,r)=>s+singleValue(r,tabId),0);
+      singleState[tabId].sexo=savedSexo;
+      out[y] = {mujeres:m, hombres:h};
+    } else {
+      out[y] = {total: rows.reduce((s,r)=>s+singleValue(r,tabId),0)};
+    }
+  });
+  return out;
+}
+
+function niceTicks(maxVal, count){
+  if(maxVal<=0) return [0];
+  const rawStep = maxVal/count;
+  const mag = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep/mag;
+  let step;
+  if(norm<1.5) step=1*mag; else if(norm<3) step=2*mag; else if(norm<7) step=5*mag; else step=10*mag;
+  const ticks=[];
+  for(let v=0; v<=maxVal+step*0.5; v+=step) ticks.push(Math.round(v));
+  return ticks;
+}
+function fmtAxisNum(n){
+  if(n>=1000) return (n/1000).toFixed(n%1000===0?0:1)+'k';
+  return n.toLocaleString('es-CL');
+}
+
+function buildSingleLineChart(dataByYear, sexoMode){
+  const years = Object.keys(dataByYear).map(Number).sort((a,b)=>a-b);
+  const w=760,h=210,padLeft=48,padRight=16,padTop=14,padBottom=28;
+  if(years.length<2) return '<div style="font-size:12.5px;color:var(--ink-muted);font-style:italic;">Serie insuficiente para graficar con este filtro.</div>';
+
+  let seriesList = sexoMode==='comparar'
+    ? [{key:'mujeres', color:'#A3492C'}, {key:'hombres', color:'#1E3A52'}]
+    : [{key:'total', color:'#2F7A6E'}];
+
+  let allVals = [];
+  seriesList.forEach(s=>years.forEach(y=>allVals.push(dataByYear[y][s.key]||0)));
+  const rawMax = Math.max(...allVals,1);
+  const ticksY = niceTicks(rawMax,4);
+  const min=0, max = ticksY[ticksY.length-1]||rawMax;
+  const range = max||1;
+  const stepX = (w-padLeft-padRight)/(years.length-1);
+  function xy(i,v){ const x=padLeft+i*stepX; const y=padTop+(1-((v-min)/range))*(h-padTop-padBottom); return {x,y}; }
+
+  let gridlines = ticksY.map(t=>{
+    const y = padTop+(1-((t-min)/range))*(h-padTop-padBottom);
+    return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w-padRight}" y2="${y.toFixed(1)}" stroke="var(--line-soft)" stroke-width="1"/>
+      <text x="${padLeft-8}" y="${(y+3).toFixed(1)}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="end">${fmtAxisNum(t)}</text>`;
+  }).join('');
+
+  let paths = seriesList.map(s=>{
+    let d='';
+    years.forEach((y,i)=>{ const p=xy(i, dataByYear[y][s.key]||0); d += (i===0?'M':'L')+p.x.toFixed(1)+','+p.y.toFixed(1)+' '; });
+    return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
+  }).join('');
+  let dots = seriesList.map(s=>years.map((y,i)=>{
+    const p=xy(i, dataByYear[y][s.key]||0);
+    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="${s.color}"/>`;
+  }).join('')).join('');
+
+  const tickEvery = years.length>14?3:(years.length>8?2:1);
+  let ticks = years.map((y,i)=>{
+    if(i%tickEvery!==0 && i!==years.length-1) return '';
+    const x = padLeft+i*stepX;
+    return `<text x="${x}" y="${h-8}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="middle">${y}</text>`;
+  }).join('');
+
+  let legend = '';
+  if(sexoMode==='comparar'){
+    legend = `<div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#A3492C"></span>Mujeres</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#1E3A52"></span>Hombres</div>
+    </div>`;
+  }
+
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">
+    ${gridlines}
+    <line x1="${padLeft}" y1="${h-padBottom}" x2="${w-padRight}" y2="${h-padBottom}" stroke="var(--line)" stroke-width="1"/>
+    ${paths}${dots}${ticks}
+  </svg>${legend}`;
+}
+
+function buildSingleCorte(tabId, year){
+  const st = singleState[tabId];
+  const rows = filteredSingle(tabId).filter(r=>r.year===year);
+  const nTotal = rows.reduce((s,r)=> s + (tabId==='oferta' ? (r.vacantes||0) : (r.total||0)), 0);
+
+  let value, breakdown=null;
+  if(tabId==='matricula' && st.sexo==='comparar' && !isAnioActive(tabId)){
+    st.sexo='mujeres'; const m = rows.reduce((s,r)=>s+singleValue(r,tabId),0);
+    st.sexo='hombres'; const h = rows.reduce((s,r)=>s+singleValue(r,tabId),0);
+    st.sexo='comparar';
+    value = m+h; breakdown = {mujeres:m, hombres:h};
+  } else {
+    value = rows.reduce((s,r)=>s+singleValue(r,tabId),0);
+  }
+
+  const nFlag = (nTotal>0 && nTotal<15) ? `<div class="n-flag">Muestra pequeña (N≈${Math.round(nTotal)}) — interpretar con cautela</div>` : '';
+  let breakdownHtml = '';
+  if(breakdown){
+    breakdownHtml = `<div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#A3492C"></span>Mujeres: ${Math.round(breakdown.mujeres)}</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#1E3A52"></span>Hombres: ${Math.round(breakdown.hombres)}</div>
+    </div>`;
+  }
+  const label = tabId==='oferta' ? 'vacantes ofertadas' : 'estudiantes';
+
+  return `${nFlag}
+    <div class="bignum-row">
+      <span class="bignum">${Math.round(value).toLocaleString('es-CL')}</span>
+      <span class="bignum-label">${label} en ${year}</span>
+    </div>
+    ${breakdownHtml}`;
+}
+
+function scopeLabelSingle(tabId){
+  const st = singleState[tabId];
+  const parts = [];
+  parts.push(st.sede==='todas' ? 'Todas las sedes' : st.sede);
+  parts.push(st.carrera==='todas' ? 'Todas las carreras' : shortCarrera(st.carrera));
+  parts.push(st.jornada==='todas' ? 'Todas las jornadas' : st.jornada);
+  if(tabId==='matricula' && isAnioActive(tabId)){
+    const anioLabels = {primer:'1er año', segundo:'2do año', pt:'Proceso de título'};
+    parts.push('Añocarrera: ' + anioLabels[st.anocarrera]);
+  } else if(tabId==='matricula' && st.sexo!=='total'){
+    const sexoLabels = {mujeres:'Mujeres', hombres:'Hombres', comparar:'Comparar M/H'};
+    parts.push('Sexo: ' + sexoLabels[st.sexo]);
+  }
+  return parts.map(p=>`<span>${p}</span>`).join('');
+}
+
+function renderSingleTab(tabId){
+  const st = singleState[tabId];
+  const data = datasetForTab(tabId);
+  const sedeOptions = uniqueSorted(data.map(r=>r.sede));
+  const carreraPool = data.filter(r=>
+    (st.sede==='todas'||r.sede===st.sede) && (st.jornada==='todas'||r.jornada===st.jornada)
+  );
+  const carreraOptions = uniqueSorted(carreraPool.map(r=>r.carrera));
+  const allYears = uniqueSorted(data.map(r=>r.year));
+  if(st.corteYear===null || !allYears.includes(st.corteYear)) st.corteYear = allYears[allYears.length-1];
+
+  const anioActive = isAnioActive(tabId);
+
+  const indicadorRow = tabId==='matricula' ? `
+    <div class="filter-item">
+      <label>Indicador</label>
+      <select data-single="indicador" ${anioActive?'disabled':''}>
+        <option value="total" ${st.indicador==='total'?'selected':''}>Matrícula total</option>
+        <option value="primer_anio" ${st.indicador==='primer_anio'?'selected':''}>Matrícula 1er año</option>
+      </select>
+    </div>` : '';
+
+  const sexoRow = tabId==='matricula' ? `
+    <div class="filter-item">
+      <label>Sexo</label>
+      <select data-single="sexo" ${anioActive?'disabled':''}>
+        <option value="total" ${st.sexo==='total'?'selected':''}>Total</option>
+        <option value="mujeres" ${st.sexo==='mujeres'?'selected':''}>Mujeres</option>
+        <option value="hombres" ${st.sexo==='hombres'?'selected':''}>Hombres</option>
+        <option value="comparar" ${st.sexo==='comparar'?'selected':''}>Comparar M/H</option>
+      </select>
+    </div>` : '';
+
+  const anocarreraRow = tabId==='matricula' ? `
+    <div class="filter-item">
+      <label>Añocarrera</label>
+      <select data-single="anocarrera">
+        <option value="todas" ${st.anocarrera==='todas'?'selected':''}>Todas (matrícula SIES)</option>
+        <option value="primer" ${st.anocarrera==='primer'?'selected':''}>1er año</option>
+        <option value="segundo" ${st.anocarrera==='segundo'?'selected':''}>2do año</option>
+        <option value="pt" ${st.anocarrera==='pt'?'selected':''}>Proceso de título</option>
+      </select>
+      ${anioActive ? '<span class="pending-tag">años disponibles: 2019, 2023, 2024 · 2019 sin desglose por jornada</span>' : ''}
+    </div>` : `
+    <div class="filter-item">
+      <label>Añocarrera</label>
+      <select disabled><option>No aplica</option></select>
+    </div>`;
+
+  const sexoMode = (tabId==='matricula' && !anioActive) ? st.sexo : 'total';
+  const bodyHtml = st.view==='progresion'
+    ? buildSingleLineChart(singleAggregate(tabId, sexoMode), sexoMode)
+    : buildSingleCorte(tabId, st.corteYear);
+
+  let title = 'Vacantes ofertadas';
+  if(tabId==='matricula'){
+    if(anioActive){
+      const anioLabels = {primer:'1er año', segundo:'2do año', pt:'Proceso de título'};
+      title = 'Matrícula — ' + anioLabels[st.anocarrera];
+    } else {
+      title = st.indicador==='total' ? 'Matrícula total' : 'Matrícula 1er año';
+    }
+  }
+  const windowLabel = st.view==='progresion' ? 'progresión' : 'corte año '+st.corteYear;
+
+  document.getElementById('tabContent').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Filtros</div>
+      <div class="filters-grid">
+        ${indicadorRow}
+        <div class="filter-item">
+          <label>Sede</label>
+          <select data-single="sede">
+            <option value="todas">Todas</option>
+            ${sedeOptions.map(v=>`<option value="${v}" ${st.sede===v?'selected':''}>${v}</option>`).join('')}
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>Carrera</label>
+          <select data-single="carrera">
+            <option value="todas">Todas</option>
+            ${carreraOptions.map(v=>`<option value="${v}" ${st.carrera===v?'selected':''}>${shortCarrera(v)}</option>`).join('')}
+          </select>
+        </div>
+        <div class="filter-item">
+          <label>Jornada</label>
+          <select data-single="jornada">
+            <option value="todas" ${st.jornada==='todas'?'selected':''}>Todas</option>
+            <option value="Diurna" ${st.jornada==='Diurna'?'selected':''}>Diurna</option>
+            <option value="Vespertina" ${st.jornada==='Vespertina'?'selected':''}>Vespertina</option>
+          </select>
+        </div>
+        ${sexoRow}
+        ${anocarreraRow}
+      </div>
+      <div class="view-toggle" data-viewtoggle="${tabId}">
+        <button data-view="progresion" class="${st.view==='progresion'?'active':''}">Progresión</button>
+        <button data-view="corte" class="${st.view==='corte'?'active':''}">Corte</button>
+      </div>
+      <div class="year-select-wrap ${st.view==='corte'?'show':''}">
+        <label>Año calendario</label>
+        <select data-single-year="${tabId}">
+          ${allYears.map(y=>`<option value="${y}" ${Number(y)===st.corteYear?'selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <main>
+      <div class="grid">
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-title-row">
+            <span class="card-title">${title}</span>
+            <button class="info-icon-btn" data-info-toggle="${tabId}">i</button>
+          </div>
+          ${st.infoOpen ? `<div class="info-box" style="margin:4px 0 14px 0;">
+            <div class="info-box-title">${INDICATOR_DEFS[tabId].title}</div>
+            <div class="info-box-text">${INDICATOR_DEFS[tabId].text}</div>
+          </div>` : ''}
+          <div class="card-scope">${scopeLabelSingle(tabId)}<span>${windowLabel}</span></div>
+          ${bodyHtml}
+        </div>
+      </div>
+    </main>
+  `;
+
+  // wire events
+  document.querySelectorAll('[data-single]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{
+      const field = sel.dataset.single;
+      st[field] = sel.value;
+      if(field==='sede' || field==='jornada'){ st.carrera='todas'; }
+      if(field==='anocarrera'){ st.carrera='todas'; st.sede='todas'; st.jornada='todas'; }
+      renderSingleTab(tabId);
+    });
+  });
+  document.querySelectorAll(`[data-viewtoggle="${tabId}"] button`).forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      st.view = btn.dataset.view;
+      renderSingleTab(tabId);
+    });
+  });
+  const yearSel = document.querySelector(`[data-single-year="${tabId}"]`);
+  if(yearSel) yearSel.addEventListener('change', (e)=>{ st.corteYear = Number(e.target.value); renderSingleTab(tabId); });
+  const infoBtn = document.querySelector(`[data-info-toggle="${tabId}"]`);
+  if(infoBtn) infoBtn.addEventListener('click', ()=>{ st.infoOpen = !st.infoOpen; renderSingleTab(tabId); });
+}
+
+/* ============================================================
+   COMPARISON TAB (multi-series)
+   ============================================================ */
+function makeSeries(id){
+  return { id, source:'matricula', indicador:'total', sede:'todas', carrera:'todas', jornada:'todas', sexo:'total', color: COLORS[(id-1)%COLORS.length] };
+}
+let seriesState = [ makeSeries(1) ];
+let nextId = 2;
+let compareState = { view:'progresion', corteYear:null };
+
+function datasetFor(s){ return s.source==='matricula' ? RECORDS : OFERTA_RECORDS; }
+function carrerasFor(s){
+  const filtered = datasetFor(s).filter(r=> (s.sede==='todas'||r.sede===s.sede) && (s.jornada==='todas'||r.jornada===s.jornada));
+  return uniqueSorted(filtered.map(r=>r.carrera));
+}
+function sedesFor(s){ return uniqueSorted(datasetFor(s).map(r=>r.sede)); }
+function filteredFor(s){
+  return datasetFor(s).filter(r=>
+    (s.sede==='todas'||r.sede===s.sede) &&
+    (s.carrera==='todas'||r.carrera===s.carrera) &&
+    (s.jornada==='todas'||r.jornada===s.jornada)
+  );
+}
+function valueForRecord(r, s){
+  if(s.source==='oferta') return r.vacantes||0;
+  const base = s.indicador==='total' ? {t:r.total, m:r.mujeres, h:r.hombres} : {t:r.primer_anio, m:r.primer_anio_mujeres, h:r.primer_anio_hombres};
+  if(s.sexo==='mujeres') return base.m||0;
+  if(s.sexo==='hombres') return base.h||0;
+  return base.t||0;
+}
+function seriesByYear(s){
+  const records = filteredFor(s);
+  const years = uniqueSorted(records.map(r=>r.year));
+  const out = {};
+  years.forEach(y=>{
+    out[y] = records.filter(r=>r.year===y).reduce((sum,r)=>sum+valueForRecord(r,s),0);
+  });
+  return out;
+}
+function seriesLabel(s){
+  const src = s.source==='matricula' ? (s.indicador==='total'?'Matrícula total':'Matrícula 1er año') : 'Vacantes ofertadas';
+  const sexoTag = (s.source==='matricula' && s.sexo!=='total') ? (s.sexo==='mujeres'?' · Mujeres':' · Hombres') : '';
+  const sedeTag = s.sede==='todas' ? '' : ' · '+s.sede.replace('SEDE ','');
+  const carreraTag = s.carrera==='todas' ? '' : ' · '+shortCarrera(s.carrera);
+  const jornadaTag = s.jornada==='todas' ? '' : ' · '+s.jornada;
+  return src + sexoTag + sedeTag + carreraTag + jornadaTag;
+}
+
+function renderSeriesControls(){
+  const wrap = document.getElementById('seriesList');
+  if(!wrap) return;
+  wrap.innerHTML = seriesState.map((s)=>{
+    const carreraOptions = carrerasFor(s);
+    const sedeOptions = sedesFor(s);
+    return `
+    <div class="series-row" data-id="${s.id}">
+      <input type="color" class="color-swatch-btn" data-field="color" value="${s.color}" title="Cambiar color de esta serie">
+
+      <div class="series-field">
+        <label>Fuente</label>
+        <select data-field="source">
+          <option value="matricula" ${s.source==='matricula'?'selected':''}>Matrícula</option>
+          <option value="oferta" ${s.source==='oferta'?'selected':''}>Oferta (vacantes)</option>
+        </select>
+      </div>
+
+      <div class="series-field">
+        <label>Indicador</label>
+        <select data-field="indicador" ${s.source==='oferta'?'disabled':''}>
+          <option value="total" ${s.indicador==='total'?'selected':''}>Matrícula total</option>
+          <option value="primer_anio" ${s.indicador==='primer_anio'?'selected':''}>Matrícula 1er año</option>
+        </select>
+      </div>
+
+      <div class="series-field">
+        <label>Sede</label>
+        <select data-field="sede">
+          <option value="todas">Todas</option>
+          ${sedeOptions.map(v=>`<option value="${v}" ${s.sede===v?'selected':''}>${v}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="series-field">
+        <label>Carrera</label>
+        <select data-field="carrera">
+          <option value="todas">Todas</option>
+          ${carreraOptions.map(v=>`<option value="${v}" ${s.carrera===v?'selected':''}>${shortCarrera(v)}</option>`).join('')}
+        </select>
+      </div>
+
+      <div class="series-field">
+        <label>Jornada</label>
+        <select data-field="jornada">
+          <option value="todas" ${s.jornada==='todas'?'selected':''}>Todas</option>
+          <option value="Diurna" ${s.jornada==='Diurna'?'selected':''}>Diurna</option>
+          <option value="Vespertina" ${s.jornada==='Vespertina'?'selected':''}>Vespertina</option>
+        </select>
+      </div>
+
+      <div class="series-field">
+        <label>Sexo</label>
+        <select data-field="sexo" ${s.source==='oferta'?'disabled':''}>
+          <option value="total" ${s.sexo==='total'?'selected':''}>Total</option>
+          <option value="mujeres" ${s.sexo==='mujeres'?'selected':''}>Mujeres</option>
+          <option value="hombres" ${s.sexo==='hombres'?'selected':''}>Hombres</option>
+        </select>
+      </div>
+
+      ${seriesState.length>1 ? `<button class="remove-series-btn" data-remove="${s.id}">Quitar</button>` : ''}
+    </div>`;
+  }).join('');
+
+  wrap.querySelectorAll('.series-row').forEach(row=>{
+    const id = Number(row.dataset.id);
+    row.querySelectorAll('select, input[type=color]').forEach(sel=>{
+      sel.addEventListener('change', ()=>{
+        const s = seriesState.find(x=>x.id===id);
+        const field = sel.dataset.field;
+        s[field] = sel.value;
+        if(field==='source'){
+          s.sede='todas'; s.carrera='todas'; s.jornada='todas';
+          if(s.source==='oferta'){ s.indicador='total'; s.sexo='total'; }
+        }
+        if(field==='sede' || field==='jornada'){ s.carrera='todas'; }
+        renderSeriesControls();
+        renderComparisonMain();
+      });
+    });
+  });
+  wrap.querySelectorAll('[data-remove]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = Number(btn.dataset.remove);
+      seriesState = seriesState.filter(s=>s.id!==id);
+      renderSeriesControls();
+      renderComparisonMain();
+    });
+  });
+
+  const addBtn = document.getElementById('addSeriesBtn');
+  if(addBtn) addBtn.disabled = seriesState.length>=MAX_SERIES;
+}
+
+function buildMultiLineChart(){
+  const seriesData = seriesState.map(s=>seriesByYear(s));
+  const allYears = uniqueSorted(seriesData.flatMap(d=>Object.keys(d).map(Number)));
+  const w=760,h=220,padLeft=52,padRight=16,padTop=14,padBottom=28;
+  if(allYears.length<2) return '<div style="font-size:12.5px;color:var(--ink-muted);font-style:italic;">Serie insuficiente para graficar con los filtros actuales.</div>';
+
+  const allVals = seriesData.flatMap(d=>Object.values(d));
+  const rawMax = Math.max(...allVals,1);
+  const ticksY = niceTicks(rawMax,4);
+  const min=0, max = ticksY[ticksY.length-1]||rawMax;
+  const range = max||1;
+  const stepX = (w-padLeft-padRight)/(allYears.length-1);
+  function xy(i,v){ const x=padLeft+i*stepX; const y=padTop+(1-((v-min)/range))*(h-padTop-padBottom); return {x,y}; }
+
+  let gridlines = ticksY.map(t=>{
+    const y = padTop+(1-((t-min)/range))*(h-padTop-padBottom);
+    return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w-padRight}" y2="${y.toFixed(1)}" stroke="var(--line-soft)" stroke-width="1"/>
+      <text x="${padLeft-8}" y="${(y+3).toFixed(1)}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="end">${fmtAxisNum(t)}</text>`;
+  }).join('');
+
+  let svgParts = '';
+  seriesData.forEach((d,idx)=>{
+    const color = seriesState[idx].color;
+    const years = allYears.filter(y=> d[y]!==undefined );
+    if(years.length<2){
+      years.forEach(y=>{
+        const i = allYears.indexOf(y);
+        const p = xy(i, d[y]);
+        svgParts += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${color}"/>`;
+      });
+      return;
+    }
+    let path=''; let started=false;
+    allYears.forEach((y,i)=>{
+      if(d[y]===undefined){ started=false; return; }
+      const p = xy(i, d[y]);
+      path += (started?'L':'M')+p.x.toFixed(1)+','+p.y.toFixed(1)+' ';
+      started=true;
+    });
+    svgParts += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    allYears.forEach((y,i)=>{
+      if(d[y]===undefined) return;
+      const p = xy(i, d[y]);
+      svgParts += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="${color}"/>`;
+    });
+  });
+
+  const tickEvery = allYears.length>14?3:(allYears.length>8?2:1);
+  let ticks = allYears.map((y,i)=>{
+    if(i%tickEvery!==0 && i!==allYears.length-1) return '';
+    const x = padLeft+i*stepX;
+    return `<text x="${x}" y="${h-8}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="middle">${y}</text>`;
+  }).join('');
+
+  const legend = `<div class="legend">${seriesState.map((s)=>
+    `<div class="legend-item"><span class="legend-swatch" style="background:${s.color}"></span>${seriesLabel(s)}</div>`
+  ).join('')}</div>`;
+
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">
+    ${gridlines}
+    <line x1="${padLeft}" y1="${h-padBottom}" x2="${w-padRight}" y2="${h-padBottom}" stroke="var(--line)" stroke-width="1"/>
+    ${svgParts}${ticks}
+  </svg>${legend}`;
+}
+
+function buildMultiCorte(year){
+  return seriesState.map((s)=>{
+    const records = filteredFor(s).filter(r=>r.year===year);
+    const val = records.reduce((sum,r)=>sum+valueForRecord(r,s),0);
+    const nTotal = records.reduce((sum,r)=> sum + (s.source==='matricula' ? (r.total||0) : (r.vacantes||0)) ,0);
+    const smallN = s.source==='matricula' && nTotal>0 && nTotal<15;
+    return `
+      <div style="display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid var(--line-soft);">
+        <span class="series-swatch" style="background:${s.color}"></span>
+        <span class="bignum" style="font-size:24px; color:${s.color};">${Math.round(val).toLocaleString('es-CL')}</span>
+        <span style="font-size:12.5px; color:var(--ink-muted);">${seriesLabel(s)}${smallN? ' <span class="n-flag" style="margin-left:6px;">muestra pequeña</span>':''}</span>
+      </div>`;
+  }).join('');
+}
+
+function renderComparisonMain(){
+  const main = document.getElementById('comparisonMain');
+  if(!main) return;
+  const windowLabel = compareState.view==='progresion' ? 'progresión (rango según disponibilidad de cada serie)' : 'corte año '+compareState.corteYear;
+  const bodyHtml = compareState.view==='progresion' ? buildMultiLineChart() : buildMultiCorte(compareState.corteYear);
+  const scope = seriesState.length + ' serie' + (seriesState.length>1?'s':'') + ' activa' + (seriesState.length>1?'s':'');
+
+  main.innerHTML = `
+    <div class="grid">
+      <div class="card" style="grid-column:1/-1;">
+        <div class="card-title">Comparación de series</div>
+        <div class="card-scope"><span>${scope}</span><span>${windowLabel}</span></div>
+        ${bodyHtml}
+      </div>
+    </div>
+  `;
+}
+
+function renderComparisonTab(){
+  const allYears = uniqueSorted([...RECORDS.map(r=>r.year), ...OFERTA_RECORDS.map(r=>r.year)]);
+  if(compareState.corteYear===null) compareState.corteYear = allYears[allYears.length-1];
+
+  document.getElementById('tabContent').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Vista general</div>
+      <div class="view-toggle" id="compareViewToggle">
+        <button data-view="progresion" class="${compareState.view==='progresion'?'active':''}">Progresión</button>
+        <button data-view="corte" class="${compareState.view==='corte'?'active':''}">Corte</button>
+      </div>
+      <div class="year-select-wrap ${compareState.view==='corte'?'show':''}">
+        <label>Año calendario</label>
+        <select id="compareYear">
+          ${allYears.map(y=>`<option value="${y}" ${Number(y)===compareState.corteYear?'selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+      <div class="pending-tag" style="margin-top:14px; display:inline-block;">Añocarrera — desagregación pendiente de nueva fuente (aplicará a cada serie cuando esté disponible)</div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <div class="panel-title">Series a comparar (máx. ${MAX_SERIES}) — usa el círculo de color para cambiarlo</div>
+      <div id="seriesList"></div>
+      <button id="addSeriesBtn" class="add-series-btn">+ Agregar serie</button>
+    </div>
+
+    <main id="comparisonMain"></main>
+  `;
+
+  document.getElementById('compareViewToggle').querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.getElementById('compareViewToggle').querySelectorAll('button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      compareState.view = btn.dataset.view;
+      document.querySelector('.year-select-wrap').classList.toggle('show', compareState.view==='corte');
+      renderComparisonMain();
+    });
+  });
+  document.getElementById('compareYear').addEventListener('change', (e)=>{
+    compareState.corteYear = Number(e.target.value);
+    renderComparisonMain();
+  });
+  document.getElementById('addSeriesBtn').addEventListener('click', ()=>{
+    if(seriesState.length>=MAX_SERIES) return;
+    seriesState.push(makeSeries(nextId++));
+    renderSeriesControls();
+    renderComparisonMain();
+  });
+
+  renderSeriesControls();
+  renderComparisonMain();
+}
+
+/* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+/* ============================================================
+   FICHA-STYLE TABS (dimensión única, no combinable — Ficha institucional)
+   Generaliza retención / egreso / titulación
+   ============================================================ */
+const DIM_LABELS = {
+  institucional:'Institucional', sede:'Sede', jornada:'Jornada', area:'Área del conocimiento', sexo:'Sexo',
+  dedicacion_horaria:'Dedicación horaria', nivel_formacion:'Nivel de formación docente'
+};
+const fichaState = {
+  retencion:  { dim:'institucional', view:'progresion', chartType:'linea', corteYear:null, infoOpen:false },
+  egreso:     { dim:'institucional', view:'progresion', chartType:'linea', corteYear:null, infoOpen:false },
+  titulacion: { dim:'institucional', variant:'tercer_anio', view:'progresion', chartType:'linea', corteYear:null, infoOpen:false },
+  dotacion:   { dim:'institucional', view:'progresion', chartType:'linea', corteYear:null, infoOpen:false },
+  jce:        { dim:'institucional', view:'progresion', chartType:'linea', corteYear:null, infoOpen:false }
+};
+
+function fichaDataFor(tabId){
+  const cfg = FICHA_INDICATORS[tabId];
+  if(tabId==='titulacion') return cfg.variants[fichaState.titulacion.variant];
+  return cfg;
+}
+
+function buildDimBarChart(years, dims){
+  const catNames = Object.keys(dims);
+  const w=760,h=210,padLeft=48,padRight=16,padTop=14,padBottom=28;
+
+  const allVals = catNames.flatMap(c=>dims[c].filter(v=>v!==null&&v!==undefined));
+  if(allVals.length<1) return '<div style="font-size:12.5px;color:var(--ink-muted);font-style:italic;">Sin datos para graficar.</div>';
+  const rawMax = Math.max(...allVals,1);
+  const ticksY = niceTicks(rawMax,4);
+  const min=0, max = ticksY[ticksY.length-1]||rawMax;
+  const range = max||1;
+
+  const groupW = (w-padLeft-padRight)/years.length;
+  const barGap = 2;
+  const barW = Math.max(2, (groupW - barGap*(catNames.length+1)) / catNames.length);
+
+  function yFor(v){ return padTop+(1-((v-min)/range))*(h-padTop-padBottom); }
+
+  let gridlines = ticksY.map(t=>{
+    const y = yFor(t);
+    return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w-padRight}" y2="${y.toFixed(1)}" stroke="var(--line-soft)" stroke-width="1"/>
+      <text x="${padLeft-8}" y="${(y+3).toFixed(1)}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="end">${t}%</text>`;
+  }).join('');
+
+  let bars = '';
+  years.forEach((y,yi)=>{
+    const groupX = padLeft + yi*groupW;
+    catNames.forEach((cat,ci)=>{
+      const v = dims[cat][yi];
+      if(v===null||v===undefined) return;
+      const color = COLORS[ci % COLORS.length];
+      const x = groupX + barGap + ci*(barW+barGap);
+      const barTop = yFor(v);
+      const barBottom = h-padBottom;
+      bars += `<rect x="${x.toFixed(1)}" y="${barTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${(barBottom-barTop).toFixed(1)}" fill="${color}"/>`;
+    });
+  });
+
+  let ticks = years.map((y,i)=>{
+    const x = padLeft + i*groupW + groupW/2;
+    return `<text x="${x}" y="${h-8}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="middle">${y}</text>`;
+  }).join('');
+
+  const legend = `<div class="legend">${catNames.map((c,idx)=>
+    `<div class="legend-item"><span class="legend-swatch" style="background:${COLORS[idx%COLORS.length]}"></span>${c}</div>`
+  ).join('')}</div>`;
+
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">
+    ${gridlines}
+    <line x1="${padLeft}" y1="${h-padBottom}" x2="${w-padRight}" y2="${h-padBottom}" stroke="var(--line)" stroke-width="1"/>
+    ${bars}${ticks}
+  </svg>${legend}`;
+}
+
+function buildDimLineChart(years, dims){
+  const catNames = Object.keys(dims);
+  const w=760,h=210,padLeft=48,padRight=16,padTop=14,padBottom=28;
+
+  const allVals = catNames.flatMap(c=>dims[c].filter(v=>v!==null&&v!==undefined));
+  const rawMax = Math.max(...allVals,1);
+  const ticksY = niceTicks(rawMax,4);
+  const min=0, max = ticksY[ticksY.length-1]||rawMax;
+  const range = max||1;
+  const stepX = (w-padLeft-padRight)/(years.length-1);
+  function xy(i,v){ const x=padLeft+i*stepX; const y=padTop+(1-((v-min)/range))*(h-padTop-padBottom); return {x,y}; }
+
+  if(years.length<2 || allVals.length<2) return '<div style="font-size:12.5px;color:var(--ink-muted);font-style:italic;">Serie insuficiente para graficar.</div>';
+
+  let gridlines = ticksY.map(t=>{
+    const y = padTop+(1-((t-min)/range))*(h-padTop-padBottom);
+    return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w-padRight}" y2="${y.toFixed(1)}" stroke="var(--line-soft)" stroke-width="1"/>
+      <text x="${padLeft-8}" y="${(y+3).toFixed(1)}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="end">${t}%</text>`;
+  }).join('');
+
+  let svgParts = '';
+  catNames.forEach((cat,idx)=>{
+    const color = COLORS[idx % COLORS.length];
+    const vals = dims[cat];
+    let path=''; let started=false;
+    years.forEach((y,i)=>{
+      const v = vals[i];
+      if(v===null||v===undefined){ started=false; return; }
+      const p=xy(i,v);
+      path += (started?'L':'M')+p.x.toFixed(1)+','+p.y.toFixed(1)+' ';
+      started=true;
+    });
+    svgParts += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2"/>`;
+    years.forEach((y,i)=>{
+      const v = vals[i];
+      if(v===null||v===undefined) return;
+      const p=xy(i,v);
+      svgParts += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2" fill="${color}"/>`;
+    });
+  });
+
+  let ticks = years.map((y,i)=>{
+    const x = padLeft+i*stepX;
+    return `<text x="${x}" y="${h-8}" font-family="IBM Plex Mono" font-size="9" fill="var(--ink-muted)" text-anchor="middle">${y}</text>`;
+  }).join('');
+
+  const legend = `<div class="legend">${catNames.map((c,idx)=>
+    `<div class="legend-item"><span class="legend-swatch" style="background:${COLORS[idx%COLORS.length]}"></span>${c}</div>`
+  ).join('')}</div>`;
+
+  return `<svg class="chart" viewBox="0 0 ${w} ${h}">
+    ${gridlines}
+    <line x1="${padLeft}" y1="${h-padBottom}" x2="${w-padRight}" y2="${h-padBottom}" stroke="var(--line)" stroke-width="1"/>
+    ${svgParts}${ticks}
+  </svg>${legend}`;
+}
+
+function buildDimCorte(years, dims, year){
+  const yearIdx = years.indexOf(year);
+  const catNames = Object.keys(dims);
+  return catNames.map((cat,idx)=>{
+    const color = COLORS[idx % COLORS.length];
+    const val = dims[cat][yearIdx];
+    const valStr = (val===null||val===undefined) ? 's/i' : val+'%';
+    return `
+      <div style="display:flex; align-items:baseline; gap:10px; padding:8px 0; border-bottom:1px solid var(--line-soft);">
+        <span class="series-swatch" style="background:${color}"></span>
+        <span class="bignum" style="font-size:24px; color:${color};">${valStr}</span>
+        <span style="font-size:12.5px; color:var(--ink-muted);">${cat}</span>
+      </div>`;
+  }).join('');
+}
+
+function renderFichaTab(tabId){
+  const st = fichaState[tabId];
+  const cfg = FICHA_INDICATORS[tabId];
+  const data = fichaDataFor(tabId);
+  const years = data.years;
+  if(st.corteYear===null || !years.includes(st.corteYear)) st.corteYear = years[years.length-1];
+
+  const bodyHtml = st.view==='progresion'
+    ? (st.chartType==='barras' ? buildDimBarChart(years, data.dims[st.dim]) : buildDimLineChart(years, data.dims[st.dim]))
+    : buildDimCorte(years, data.dims[st.dim], st.corteYear);
+
+  const variantRow = tabId==='titulacion' ? `
+    <div class="filter-item">
+      <label>Variante</label>
+      <select id="fichaVariant">
+        ${Object.entries(cfg.variants).map(([k,v])=>`<option value="${k}" ${st.variant===k?'selected':''}>${v.label}</option>`).join('')}
+      </select>
+    </div>` : '';
+
+  const titleSuffix = tabId==='titulacion' ? ' — ' + cfg.variants[st.variant].label : '';
+  const title = cfg.title + titleSuffix + ' — ' + DIM_LABELS[st.dim];
+  const windowLabel = st.view==='progresion' ? `progresión ${years[0]}–${years[years.length-1]}` : 'corte año '+st.corteYear;
+
+  document.getElementById('tabContent').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">Filtros</div>
+      <div class="filters-grid">
+        ${variantRow}
+        <div class="filter-item">
+          <label>Desagregar por</label>
+          <select id="fichaDim">
+            ${Object.keys(data.dims).map(d=>`<option value="${d}" ${st.dim===d?'selected':''}>${DIM_LABELS[d]||d}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="view-toggle" id="fichaViewToggle">
+        <button data-view="progresion" class="${st.view==='progresion'?'active':''}">Progresión</button>
+        <button data-view="corte" class="${st.view==='corte'?'active':''}">Corte</button>
+      </div>
+      <div class="view-toggle" id="fichaChartTypeToggle" style="margin-top:8px; ${st.view==='corte'?'display:none;':''}">
+        <button data-charttype="linea" class="${st.chartType==='linea'?'active':''}">Línea</button>
+        <button data-charttype="barras" class="${st.chartType==='barras'?'active':''}">Barras</button>
+      </div>
+      <div class="year-select-wrap ${st.view==='corte'?'show':''}">
+        <label>Año calendario</label>
+        <select id="fichaYear">
+          ${years.map(y=>`<option value="${y}" ${y===st.corteYear?'selected':''}>${y}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+
+    <main>
+      <div class="grid">
+        <div class="card" style="grid-column:1/-1;">
+          <div class="card-title-row">
+            <span class="card-title">${title}</span>
+            <button class="info-icon-btn" id="fichaInfoToggle">i</button>
+          </div>
+          ${st.infoOpen ? `<div class="info-box" style="margin:4px 0 14px 0;">
+            <div class="info-box-title">¿Qué mide este indicador?</div>
+            <div class="info-box-text">${cfg.def}</div>
+          </div>` : ''}
+          <div class="card-scope"><span>Desagregación: ${DIM_LABELS[st.dim]}</span><span>${windowLabel}</span></div>
+          ${bodyHtml}
+        </div>
+      </div>
+    </main>
+  `;
+
+  document.getElementById('fichaDim').addEventListener('change',(e)=>{
+    st.dim = e.target.value;
+    renderFichaTab(tabId);
+  });
+  document.getElementById('fichaViewToggle').querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      st.view = btn.dataset.view;
+      renderFichaTab(tabId);
+    });
+  });
+  document.getElementById('fichaChartTypeToggle').querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      st.chartType = btn.dataset.charttype;
+      renderFichaTab(tabId);
+    });
+  });
+  document.getElementById('fichaYear').addEventListener('change',(e)=>{
+    st.corteYear = Number(e.target.value);
+    renderFichaTab(tabId);
+  });
+  document.getElementById('fichaInfoToggle').addEventListener('click', ()=>{
+    st.infoOpen = !st.infoOpen;
+    renderFichaTab(tabId);
+  });
+  const variantSel = document.getElementById('fichaVariant');
+  if(variantSel) variantSel.addEventListener('change',(e)=>{
+    st.variant = e.target.value;
+    st.corteYear = null;
+    renderFichaTab(tabId);
+  });
+}
+
+/* ============================================================
+   TAB SWITCHING
+   ============================================================ */
+function renderCategoryBar(){
+  const bar = document.getElementById('categoryBar');
+  bar.innerHTML = CATEGORIES.map(c=>`<button data-cat="${c.id}" class="${currentCategory===c.id?'active':''}">${c.label}</button>`).join('');
+  bar.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentCategory = btn.dataset.cat;
+      const cat = currentCategoryObj();
+      currentTab = cat.tabs.length ? cat.tabs[0].id : null;
+      renderCategoryBar();
+      renderTabBar();
+      renderCurrentTab();
+    });
+  });
+}
+
+function renderTabBar(){
+  const bar = document.getElementById('tabBar');
+  const cat = currentCategoryObj();
+  if(!cat.tabs.length){
+    bar.innerHTML = '';
+    bar.style.display = 'none';
+    return;
+  }
+  bar.style.display = 'flex';
+  bar.innerHTML = cat.tabs.map(t=>`<button data-tab="${t.id}" class="${currentTab===t.id?'active':''}">${t.label}</button>`).join('');
+  bar.querySelectorAll('button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      currentTab = btn.dataset.tab;
+      renderTabBar();
+      renderCurrentTab();
+    });
+  });
+}
+
+function renderCurrentTab(){
+  const cat = currentCategoryObj();
+  if(!cat.tabs.length){
+    document.getElementById('tabContent').innerHTML = `<div class="category-empty">Todavía no hay indicadores cargados en "${cat.label}". Se irán agregando aquí a medida que definamos cuáles corresponden.</div>`;
+    return;
+  }
+  if(currentTab==='matricula') renderSingleTab('matricula');
+  else if(currentTab==='oferta') renderSingleTab('oferta');
+  else if(currentTab==='retencion' || currentTab==='egreso' || currentTab==='titulacion' || currentTab==='dotacion' || currentTab==='jce') renderFichaTab(currentTab);
+  else renderComparisonTab();
+}
+
+function init(){
+  renderCategoryBar();
+  renderTabBar();
+  renderCurrentTab();
+}
+
+async function bootstrap(){
+  document.getElementById('tabContent').innerHTML = '<div class="category-empty">Cargando datos desde Drive…</div>';
+  document.getElementById('categoryBar').innerHTML = '';
+  document.getElementById('tabBar').innerHTML = '';
+  await loadAllData();
+  init();
+  if(DATA_LOAD_ERRORS.length>0){
+    document.getElementById('categoryBar').insertAdjacentHTML('afterend', renderLoadErrorBanner());
+  }
+}
+bootstrap();
+</script>
+</body>
+</html>

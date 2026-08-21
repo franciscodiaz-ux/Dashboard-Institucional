@@ -1,0 +1,2485 @@
+<script>
+function renderIndicadorAcademico_(id){
+  switch(id){
+    case 'matricula':
+      renderMatriculaBase_();
+      cargarMatriculaOficial_();
+      return true;
+
+    case 'composicion':
+      renderComposicionMatriculaBase_();
+      cargarComposicionMatriculaOficial_();
+      return true;
+
+    case 'oferta':
+      renderOfertaBase_();
+      cargarOfertaOficial_();
+      return true;
+
+    case 'retencion':
+      renderRetencionBase_();
+      cargarRetencionDesdeComposicion_();
+      return true;
+
+    case 'tasa_titulacion':
+      renderTasaTitulacionBase_();
+      cargarTasaTitulacion_();
+      return true;
+
+    case 'titulacion':
+      renderTituladosBase_();
+      cargarTituladosOficial_();
+      return true;
+
+    case 'dotacion':
+      renderDotacionBase_();
+      cargarDotacionOficial_();
+      return true;
+
+    default:
+      return false;
+  }
+}
+
+function recargarIndicadorAcademico_(tipo){
+  if (tipo === 'matricula' && currentTab === 'matricula') {
+    cargarMatriculaOficial_();
+  }
+  else if (tipo === 'composicion_matricula' && currentTab === 'composicion') {
+    cargarComposicionMatriculaOficial_();
+  }
+  else if (tipo === 'oferta' && currentTab === 'oferta') {
+    cargarOfertaOficial_();
+  }
+  else if (tipo === 'titulados' && currentTab === 'titulacion') {
+    cargarTituladosOficial_();
+  }
+  else if (tipo === 'dotacion' && currentTab === 'dotacion') {
+    cargarDotacionOficial_();
+  }
+}
+
+
+function renderMatriculaBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Matrícula</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('matricula')">
+              Descargar CSV
+            </button>
+            <button type="button" class="update-link" id="toggleUploadBtn">
+              ↻ Actualizar registros
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="matriculaResumen">
+            Cargando dataset oficial...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span>Año</span>
+            <select id="filtroMatriculaAno" disabled>
+              <option value="">Todos</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Sede</span>
+            <select id="filtroMatriculaSede" disabled>
+              <option value="">Todas</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Carrera</span>
+            <select id="filtroMatriculaCarrera" disabled>
+              <option value="">Todas</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Jornada</span>
+            <select id="filtroMatriculaJornada" disabled>
+              <option value="">Todas</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">Matrícula total</div>
+          <div class="kpi-value" id="kpiMatriculaTotal">—</div>
+          <div class="kpi-note">Suma de TOTAL MATRÍCULA</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Registros considerados</div>
+          <div class="kpi-value" id="kpiRegistros">—</div>
+          <div class="kpi-note">Filas luego de aplicar filtros</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Carreras</div>
+          <div class="kpi-value" id="kpiCarreras">—</div>
+          <div class="kpi-note">Carreras presentes en la selección</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Sedes</div>
+          <div class="kpi-value" id="kpiSedes">—</div>
+          <div class="kpi-note">Sedes presentes en la selección</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card">
+          <div class="chart-title">Evolución de matrícula por año</div>
+          <div class="chart-subtitle">Suma de matrícula para los registros filtrados</div>
+          <div class="bar-chart" id="graficoMatriculaAno"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Matrícula por sede</div>
+          <div class="chart-subtitle">Distribución según sede</div>
+          <div class="bar-chart" id="graficoMatriculaSede"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Matrícula por jornada</div>
+          <div class="chart-subtitle">Distribución según jornada</div>
+          <div class="bar-chart" id="graficoMatriculaJornada"></div>
+        </article>
+
+        <article class="chart-card chart-card-wide">
+          <div class="chart-title">Matrícula por carrera</div>
+          <div class="chart-subtitle">Hasta 12 carreras, ordenadas por matrícula</div>
+          <div class="bar-chart" id="graficoMatriculaCarrera"></div>
+        </article>
+      </section>
+
+      <div class="dataset-status" id="matriculaEstado">
+        Leyendo matricula.csv desde Drive...
+      </div>
+    </main>
+  `;
+
+  configurarToggleActualizacion_();
+  configurarPanelActualizacion_('matricula');
+}
+
+function cargarMatriculaOficial_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.matricula = respuesta.registros;
+      window.datasetMeta.matricula = {
+        cantidadRegistros: respuesta.cantidadRegistros,
+        cantidadColumnas: respuesta.cantidadColumnas,
+        encabezados: respuesta.encabezados
+      };
+
+      aplicarDatosMatricula_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('matriculaEstado');
+      const resumen = document.getElementById('matriculaResumen');
+
+      if (resumen) resumen.textContent = 'No fue posible cargar el dataset.';
+      if (estado) {
+        estado.textContent =
+          'Error al cargar matricula.csv: ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+
+      console.error('Error cargando Matrícula:', error);
+    })
+    .obtenerDataset('matricula');
+}
+
+function aplicarDatosMatricula_(respuesta){
+  const resumen = document.getElementById('matriculaResumen');
+  const estado = document.getElementById('matriculaEstado');
+
+  cargarOpcionesFiltro_('filtroMatriculaAno', respuesta.filtros.anos, 'Todos');
+  cargarOpcionesFiltro_('filtroMatriculaSede', respuesta.filtros.sedes, 'Todas');
+  cargarOpcionesFiltro_('filtroMatriculaCarrera', respuesta.filtros.carreras, 'Todas');
+  cargarOpcionesFiltro_('filtroMatriculaJornada', respuesta.filtros.jornadas, 'Todas');
+
+  configurarFiltrosMatricula_();
+  actualizarVisualizacionesMatricula_();
+
+  if (resumen) {
+    resumen.textContent =
+      `${respuesta.cantidadRegistros.toLocaleString('es-CL')} registros · ` +
+      `${respuesta.cantidadColumnas.toLocaleString('es-CL')} columnas · ${respuesta.archivoOficial}`;
+  }
+
+  if (estado) {
+    estado.textContent = 'Dataset oficial cargado correctamente.';
+    estado.classList.remove('error');
+  }
+}
+
+function configurarFiltrosMatricula_(){
+  [
+    'filtroMatriculaAno',
+    'filtroMatriculaSede',
+    'filtroMatriculaCarrera',
+    'filtroMatriculaJornada'
+  ].forEach(function(id){
+    const control = document.getElementById(id);
+    if (!control || control.dataset.listenerConfigurado === '1') return;
+
+    control.addEventListener('change', actualizarVisualizacionesMatricula_);
+    control.dataset.listenerConfigurado = '1';
+  });
+}
+
+function obtenerFiltrosMatricula_(){
+  return {
+    ano: obtenerValorFiltro_('filtroMatriculaAno'),
+    sede: obtenerValorFiltro_('filtroMatriculaSede'),
+    carrera: obtenerValorFiltro_('filtroMatriculaCarrera'),
+    jornada: obtenerValorFiltro_('filtroMatriculaJornada')
+  };
+}
+
+function obtenerMatriculaFiltrada_(){
+  const registros = window.datasetCache.matricula || [];
+  const filtros = obtenerFiltrosMatricula_();
+
+  return registros.filter(function(registro){
+    return (!filtros.ano || String(registro['AÑO']) === filtros.ano) &&
+           (!filtros.sede || String(registro['NOMBRE SEDE']) === filtros.sede) &&
+           (!filtros.carrera || String(registro['NOMBRE CARRERA']) === filtros.carrera) &&
+           (!filtros.jornada || String(registro['JORNADA']) === filtros.jornada);
+  });
+}
+
+function actualizarVisualizacionesMatricula_(){
+  const registros = obtenerMatriculaFiltrada_();
+
+  actualizarKPIsMatricula_(registros);
+
+  dibujarBarras_(
+    'graficoMatriculaAno',
+    agregarMatriculaPorCampo_(registros, 'AÑO', true),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoMatriculaSede',
+    agregarMatriculaPorCampo_(registros, 'NOMBRE SEDE'),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoMatriculaJornada',
+    agregarMatriculaPorCampo_(registros, 'JORNADA'),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoMatriculaCarrera',
+    agregarMatriculaPorCampo_(registros, 'NOMBRE CARRERA'),
+    12
+  );
+}
+
+function actualizarKPIsMatricula_(registros){
+  const total = registros.reduce(
+    (suma, registro) => suma + numeroMatricula_(registro['TOTAL MATRÍCULA']),
+    0
+  );
+
+  asignarTexto_('kpiMatriculaTotal', formatearNumero_(total));
+  asignarTexto_('kpiRegistros', formatearNumero_(registros.length));
+  asignarTexto_(
+    'kpiCarreras',
+    formatearNumero_(cantidadUnicos_(registros, 'NOMBRE CARRERA'))
+  );
+  asignarTexto_(
+    'kpiSedes',
+    formatearNumero_(cantidadUnicos_(registros, 'NOMBRE SEDE'))
+  );
+}
+
+function agregarMatriculaPorCampo_(registros, campo, ordenarAno){
+  const mapa = {};
+
+  registros.forEach(function(registro){
+    let etiqueta = String(registro[campo] || '').trim();
+    if (!etiqueta) return;
+
+    if (ordenarAno) {
+      etiqueta = extraerAnoFrontend_(etiqueta);
+    }
+
+    mapa[etiqueta] =
+      (mapa[etiqueta] || 0) +
+      numeroMatricula_(registro['TOTAL MATRÍCULA']);
+  });
+
+  const resultado = Object.keys(mapa)
+    .map(etiqueta => ({ etiqueta, valor: mapa[etiqueta] }));
+
+  if (ordenarAno) {
+    return resultado.sort((a, b) => Number(a.etiqueta) - Number(b.etiqueta));
+  }
+
+  return resultado.sort((a, b) => b.valor - a.valor);
+}
+
+function numeroMatricula_(valor){
+  const limpio = String(valor === null || valor === undefined ? '' : valor)
+    .trim()
+    .replace(/[^\d-]/g, '');
+
+  const numero = Number(limpio);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function renderComposicionMatriculaBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Composición matrícula</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('composicion_matricula')">
+              Descargar CSV
+            </button>
+            <button type="button" class="update-link" id="toggleUploadBtn">
+              ↻ Actualizar registros
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="composicionResumen">
+            Cargando dataset oficial...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span>Año</span>
+            <select id="filtroComposicionAno" disabled><option value="">Todos</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Sede</span>
+            <select id="filtroComposicionSede" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Jornada</span>
+            <select id="filtroComposicionJornada" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Carrera</span>
+            <select id="filtroComposicionCarrera" disabled><option value="">Todas</option></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">Primer año</div>
+          <div class="kpi-value" id="kpiComposicionPrimero">—</div>
+          <div class="kpi-note">Estudiantes de primer año</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Segundo año</div>
+          <div class="kpi-value" id="kpiComposicionSegundo">—</div>
+          <div class="kpi-note">Estudiantes de segundo año</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Proceso de titulación</div>
+          <div class="kpi-value" id="kpiComposicionPT">—</div>
+          <div class="kpi-note">Estudiantes en proceso de titulación</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Total composición</div>
+          <div class="kpi-value" id="kpiComposicionTotal">—</div>
+          <div class="kpi-note">Primer + segundo año + proceso de titulación</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card">
+          <div class="chart-title">Composición de matrícula</div>
+          <div class="chart-subtitle">Distribución según estado académico</div>
+          <div class="bar-chart" id="graficoComposicionGeneral"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Primer año por período</div>
+          <div class="chart-subtitle">Evolución cronológica</div>
+          <div class="bar-chart" id="graficoComposicionPrimerAno"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Segundo año por período</div>
+          <div class="chart-subtitle">Evolución cronológica</div>
+          <div class="bar-chart" id="graficoComposicionSegundoAno"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Proceso de titulación por período</div>
+          <div class="chart-subtitle">Evolución cronológica</div>
+          <div class="bar-chart" id="graficoComposicionPT"></div>
+        </article>
+      </section>
+
+      <div class="consistency-note" id="composicionDiscrepancias" hidden></div>
+
+      <div class="dataset-status" id="composicionEstado">
+        Leyendo composicion_matricula.csv desde Drive...
+      </div>
+    </main>
+  `;
+
+  configurarToggleActualizacion_();
+  configurarPanelActualizacion_('composicion_matricula');
+}
+
+function cargarComposicionMatriculaOficial_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.composicion_matricula = respuesta.registros;
+      window.datasetMeta.composicion_matricula = {
+        cantidadRegistros: respuesta.cantidadRegistros,
+        cantidadColumnas: respuesta.cantidadColumnas,
+        encabezados: respuesta.encabezados
+      };
+
+      aplicarDatosComposicion_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('composicionEstado');
+      const resumen = document.getElementById('composicionResumen');
+
+      if (resumen) {
+        resumen.textContent =
+          'Composición Matrícula todavía no contiene datos.';
+      }
+
+      if (estado) {
+        estado.textContent =
+          'Puede cargar composicion_matricula.csv desde “Actualizar registros”. ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+    })
+    .obtenerDataset('composicion_matricula');
+}
+
+function aplicarDatosComposicion_(respuesta){
+  const resumen = document.getElementById('composicionResumen');
+  const estado = document.getElementById('composicionEstado');
+
+  cargarOpcionesFiltro_('filtroComposicionAno', respuesta.filtros.anos, 'Todos');
+  cargarOpcionesFiltro_('filtroComposicionSede', respuesta.filtros.sedes, 'Todas');
+  cargarOpcionesFiltro_('filtroComposicionJornada', respuesta.filtros.jornadas, 'Todas');
+  cargarOpcionesFiltro_('filtroComposicionCarrera', respuesta.filtros.carreras, 'Todas');
+
+  configurarFiltrosComposicion_();
+  actualizarVisualizacionesComposicion_();
+  mostrarDiscrepanciasComposicion_(respuesta.discrepanciasPrimerAno || []);
+
+  if (resumen) {
+    resumen.textContent =
+      `${respuesta.cantidadRegistros.toLocaleString('es-CL')} registros · ` +
+      `${respuesta.cantidadColumnas.toLocaleString('es-CL')} columnas · ${respuesta.archivoOficial}`;
+  }
+
+  if (estado) {
+    estado.textContent = respuesta.cantidadRegistros > 0
+      ? 'Dataset oficial cargado correctamente.'
+      : 'El archivo existe, pero todavía no contiene registros de composición.';
+    estado.classList.remove('error');
+  }
+}
+
+function configurarFiltrosComposicion_(){
+  [
+    'filtroComposicionAno',
+    'filtroComposicionSede',
+    'filtroComposicionJornada',
+    'filtroComposicionCarrera'
+  ].forEach(function(id){
+    const control = document.getElementById(id);
+    if (!control || control.dataset.listenerConfigurado === '1') return;
+
+    control.addEventListener('change', actualizarVisualizacionesComposicion_);
+    control.dataset.listenerConfigurado = '1';
+  });
+}
+
+function obtenerComposicionFiltrada_(){
+  const registros = window.datasetCache.composicion_matricula || [];
+
+  const ano = obtenerValorFiltro_('filtroComposicionAno');
+  const sede = obtenerValorFiltro_('filtroComposicionSede');
+  const jornada = obtenerValorFiltro_('filtroComposicionJornada');
+  const carrera = obtenerValorFiltro_('filtroComposicionCarrera');
+
+  return registros.filter(function(registro){
+    return (!ano || String(registro.ANIO) === ano) &&
+           (!sede || String(registro.SEDE) === sede) &&
+           (!jornada || String(registro.JORNADA) === jornada) &&
+           (!carrera || String(registro.CARRERA) === carrera);
+  });
+}
+
+function actualizarVisualizacionesComposicion_(){
+  const registros = obtenerComposicionFiltrada_();
+
+  const primero = sumarCampoComposicion_(registros, 'PRIMER_ANIO');
+  const segundo = sumarCampoComposicion_(registros, 'SEGUNDO_ANIO');
+  const pt = sumarCampoComposicion_(registros, 'PROCESO_TITULACION');
+
+  asignarTexto_('kpiComposicionPrimero', formatearNumero_(primero));
+  asignarTexto_('kpiComposicionSegundo', formatearNumero_(segundo));
+  asignarTexto_('kpiComposicionPT', formatearNumero_(pt));
+  asignarTexto_('kpiComposicionTotal', formatearNumero_(primero + segundo + pt));
+
+  dibujarBarras_(
+    'graficoComposicionGeneral',
+    [
+      {etiqueta:'Primer año', valor:primero},
+      {etiqueta:'Segundo año', valor:segundo},
+      {etiqueta:'Proceso titulación', valor:pt}
+    ],
+    3
+  );
+
+  dibujarBarras_(
+    'graficoComposicionPrimerAno',
+    agregarComposicionPorAno_(registros, 'PRIMER_ANIO'),
+    20
+  );
+
+  dibujarBarras_(
+    'graficoComposicionSegundoAno',
+    agregarComposicionPorAno_(registros, 'SEGUNDO_ANIO'),
+    20
+  );
+
+  dibujarBarras_(
+    'graficoComposicionPT',
+    agregarComposicionPorAno_(registros, 'PROCESO_TITULACION'),
+    20
+  );
+}
+
+function sumarCampoComposicion_(registros, campo){
+  return (registros || []).reduce(function(suma, registro){
+    return suma + numeroGenerico_(registro[campo]);
+  }, 0);
+}
+
+function agregarComposicionPorAno_(registros, campo){
+  const mapa = {};
+
+  (registros || []).forEach(function(registro){
+    const ano = extraerAnoFrontend_(registro.ANIO);
+    if (!ano) return;
+
+    mapa[ano] =
+      (mapa[ano] || 0) +
+      numeroGenerico_(registro[campo]);
+  });
+
+  return Object.keys(mapa)
+    .map(ano => ({etiqueta:ano, valor:mapa[ano]}))
+    .sort((a,b) => Number(a.etiqueta) - Number(b.etiqueta));
+}
+
+function mostrarDiscrepanciasComposicion_(discrepancias){
+  const box = document.getElementById('composicionDiscrepancias');
+  if (!box) return;
+
+  if (!discrepancias || discrepancias.length === 0) {
+    box.hidden = true;
+    box.innerHTML = '';
+    return;
+  }
+
+  box.hidden = false;
+
+  const primeras = discrepancias.slice(0, 8);
+
+  box.innerHTML = `
+    <div class="consistency-note-title">
+      Diferencias detectadas con Matrícula (${discrepancias.length})
+    </div>
+    <div class="consistency-note-text">
+      Para el indicador se mantienen los valores de composicion_matricula.csv.
+      Matrícula se usa únicamente como fuente de contraste para Primer Año.
+    </div>
+    <ul>
+      ${primeras.map(function(d){
+        const jornada = d.jornada ? ` · ${escapeHtml_(d.jornada)}` : '';
+        return `
+          <li>
+            ${escapeHtml_(d.anio)} · ${escapeHtml_(d.sede)}${jornada} ·
+            ${escapeHtml_(d.carrera)}:
+            Composición ${formatearNumero_(d.primerAnoComposicion)} /
+            Matrícula ${formatearNumero_(d.primerAnoMatricula)}
+          </li>`;
+      }).join('')}
+    </ul>
+    ${discrepancias.length > primeras.length
+      ? `<div class="consistency-note-text">
+           Se muestran las primeras ${primeras.length} diferencias.
+         </div>`
+      : ''}
+  `;
+}
+
+function renderOfertaBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Oferta académica</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('oferta')">
+              Descargar CSV
+            </button>
+            <button type="button" class="update-link" id="toggleUploadBtn">
+              ↻ Actualizar registros
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="ofertaResumen">
+            Cargando dataset oficial...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid filter-grid-six">
+          <label class="filter-field">
+            <span>Año</span>
+            <select id="filtroOfertaAno" disabled><option value="">Todos</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Sede</span>
+            <select id="filtroOfertaSede" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Área</span>
+            <select id="filtroOfertaArea" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Carrera</span>
+            <select id="filtroOfertaCarrera" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Jornada</span>
+            <select id="filtroOfertaJornada" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Vigencia</span>
+            <select id="filtroOfertaVigencia" disabled><option value="">Todas</option></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">Vacantes totales</div>
+          <div class="kpi-value" id="kpiOfertaVacantesTotal">—</div>
+          <div class="kpi-note">Semestre uno + semestre dos</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Carreras</div>
+          <div class="kpi-value" id="kpiOfertaCarreras">—</div>
+          <div class="kpi-note">Carreras presentes en la selección</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Registros de oferta</div>
+          <div class="kpi-value" id="kpiOfertaRegistros">—</div>
+          <div class="kpi-note">Filas luego de aplicar filtros</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Sedes</div>
+          <div class="kpi-value" id="kpiOfertaSedes">—</div>
+          <div class="kpi-note">Sedes presentes en la selección</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card">
+          <div class="chart-title">Vacantes por año</div>
+          <div class="chart-subtitle">Semestre uno + semestre dos</div>
+          <div class="bar-chart" id="graficoOfertaAno"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Vacantes por sede</div>
+          <div class="chart-subtitle">Distribución de vacantes según sede</div>
+          <div class="bar-chart" id="graficoOfertaSede"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Vacantes por área del conocimiento</div>
+          <div class="chart-subtitle">Distribución según área</div>
+          <div class="bar-chart" id="graficoOfertaArea"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Vacantes por jornada</div>
+          <div class="chart-subtitle">Distribución según jornada</div>
+          <div class="bar-chart" id="graficoOfertaJornada"></div>
+        </article>
+
+        <article class="chart-card chart-card-wide">
+          <div class="chart-title">Vacantes por carrera</div>
+          <div class="chart-subtitle">Hasta 12 carreras, ordenadas por vacantes</div>
+          <div class="bar-chart" id="graficoOfertaCarrera"></div>
+        </article>
+      </section>
+
+      <div class="dataset-status" id="ofertaEstado">
+        Leyendo oferta.csv desde Drive...
+      </div>
+    </main>
+  `;
+
+  configurarToggleActualizacion_();
+  configurarPanelActualizacion_('oferta');
+}
+
+function cargarOfertaOficial_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.oferta = respuesta.registros;
+      window.datasetMeta.oferta = {
+        cantidadRegistros: respuesta.cantidadRegistros,
+        cantidadColumnas: respuesta.cantidadColumnas,
+        encabezados: respuesta.encabezados
+      };
+
+      aplicarDatosOferta_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('ofertaEstado');
+      const resumen = document.getElementById('ofertaResumen');
+
+      if (resumen) {
+        resumen.textContent = 'El dataset oficial debe actualizarse con la fuente SIES.';
+      }
+
+      if (estado) {
+        estado.textContent =
+          'Use “Actualizar registros” para cargar el CSV bruto de Oferta Académica. ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+    })
+    .obtenerDataset('oferta');
+}
+
+function aplicarDatosOferta_(respuesta){
+  const resumen = document.getElementById('ofertaResumen');
+  const estado = document.getElementById('ofertaEstado');
+
+  cargarOpcionesFiltroEtiquetadas_(
+    'filtroOfertaAno',
+    respuesta.filtros.anos,
+    'Todos',
+    valor => String(valor).replace(/^OFE_/, '')
+  );
+
+  cargarOpcionesFiltro_('filtroOfertaSede', respuesta.filtros.sedes, 'Todas');
+  cargarOpcionesFiltro_('filtroOfertaArea', respuesta.filtros.areas, 'Todas');
+  cargarOpcionesFiltro_('filtroOfertaCarrera', respuesta.filtros.carreras, 'Todas');
+  cargarOpcionesFiltro_('filtroOfertaJornada', respuesta.filtros.jornadas, 'Todas');
+  cargarOpcionesFiltro_('filtroOfertaVigencia', respuesta.filtros.vigencias, 'Todas');
+
+  configurarFiltrosOferta_();
+  actualizarVisualizacionesOferta_();
+
+  if (resumen) {
+    resumen.textContent =
+      `${respuesta.cantidadRegistros.toLocaleString('es-CL')} registros · ` +
+      `${respuesta.cantidadColumnas.toLocaleString('es-CL')} columnas · ${respuesta.archivoOficial}`;
+  }
+
+  if (estado) {
+    estado.textContent = 'Dataset oficial cargado correctamente.';
+    estado.classList.remove('error');
+  }
+}
+
+function configurarFiltrosOferta_(){
+  [
+    'filtroOfertaAno',
+    'filtroOfertaSede',
+    'filtroOfertaArea',
+    'filtroOfertaCarrera',
+    'filtroOfertaJornada',
+    'filtroOfertaVigencia'
+  ].forEach(function(id){
+    const control = document.getElementById(id);
+    if (!control || control.dataset.listenerConfigurado === '1') return;
+
+    control.addEventListener('change', actualizarVisualizacionesOferta_);
+    control.dataset.listenerConfigurado = '1';
+  });
+}
+
+function obtenerFiltrosOferta_(){
+  return {
+    ano: obtenerValorFiltro_('filtroOfertaAno'),
+    sede: obtenerValorFiltro_('filtroOfertaSede'),
+    area: obtenerValorFiltro_('filtroOfertaArea'),
+    carrera: obtenerValorFiltro_('filtroOfertaCarrera'),
+    jornada: obtenerValorFiltro_('filtroOfertaJornada'),
+    vigencia: obtenerValorFiltro_('filtroOfertaVigencia')
+  };
+}
+
+function obtenerOfertaFiltrada_(){
+  const registros = window.datasetCache.oferta || [];
+  const filtros = obtenerFiltrosOferta_();
+
+  return registros.filter(function(registro){
+    return (!filtros.ano || String(registro['Año']) === filtros.ano) &&
+           (!filtros.sede || String(registro['Nombre Sede']) === filtros.sede) &&
+           (!filtros.area || String(registro['Área del conocimiento']) === filtros.area) &&
+           (!filtros.carrera || String(registro['Nombre Carrera']) === filtros.carrera) &&
+           (!filtros.jornada || String(registro['Jornada']) === filtros.jornada) &&
+           (!filtros.vigencia || String(registro['Vigencia']) === filtros.vigencia);
+  });
+}
+
+function actualizarVisualizacionesOferta_(){
+  const registros = obtenerOfertaFiltrada_();
+
+  const vacantesTotal = registros.reduce(function(suma, registro){
+    return suma +
+      numeroGenerico_(registro['Vacantes Semestre Uno']) +
+      numeroGenerico_(registro['Vacantes Semestre Dos']);
+  }, 0);
+
+  asignarTexto_('kpiOfertaVacantesTotal', formatearNumero_(vacantesTotal));
+  asignarTexto_(
+    'kpiOfertaCarreras',
+    formatearNumero_(cantidadUnicos_(registros, 'Nombre Carrera'))
+  );
+  asignarTexto_('kpiOfertaRegistros', formatearNumero_(registros.length));
+  asignarTexto_(
+    'kpiOfertaSedes',
+    formatearNumero_(cantidadUnicos_(registros, 'Nombre Sede'))
+  );
+
+  dibujarBarras_(
+    'graficoOfertaAno',
+    agregarVacantesOfertaPorCampo_(registros, 'Año', true),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoOfertaSede',
+    agregarVacantesOfertaPorCampo_(registros, 'Nombre Sede'),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoOfertaArea',
+    agregarVacantesOfertaPorCampo_(registros, 'Área del conocimiento'),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoOfertaJornada',
+    agregarVacantesOfertaPorCampo_(registros, 'Jornada'),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoOfertaCarrera',
+    agregarVacantesOfertaPorCampo_(registros, 'Nombre Carrera'),
+    12
+  );
+}
+
+function agregarVacantesOfertaPorCampo_(registros, campo, limpiarAno){
+  const mapa = {};
+
+  registros.forEach(function(registro){
+    let etiqueta = String(registro[campo] || '').trim();
+    if (!etiqueta) return;
+
+    if (limpiarAno) {
+      etiqueta = etiqueta.replace(/^OFE_/, '');
+    }
+
+    const vacantes =
+      numeroGenerico_(registro['Vacantes Semestre Uno']) +
+      numeroGenerico_(registro['Vacantes Semestre Dos']);
+
+    mapa[etiqueta] = (mapa[etiqueta] || 0) + vacantes;
+  });
+
+  const resultado = Object.keys(mapa)
+    .map(etiqueta => ({ etiqueta, valor: mapa[etiqueta] }));
+
+  if (limpiarAno) {
+    return resultado.sort((a,b) => Number(a.etiqueta) - Number(b.etiqueta));
+  }
+
+  return resultado.sort((a,b) => b.valor - a.valor);
+}
+
+function renderRetencionBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Retención 1er año</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('retencion')">
+              Descargar CSV
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="retencionResumen">
+            Calculando desde Composición matrícula...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span>Cohorte</span>
+            <select id="filtroRetencionCohorte" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Sede</span>
+            <select id="filtroRetencionSede" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Jornada</span>
+            <select id="filtroRetencionJornada" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Carrera</span>
+            <select id="filtroRetencionCarrera" disabled><option value="">Todas</option></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">Retención</div>
+          <div class="kpi-value" id="kpiRetencionPorcentaje">—</div>
+          <div class="kpi-note">Segundo año t+1 / Primer año t</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Primer año</div>
+          <div class="kpi-value" id="kpiRetencionPrimero">—</div>
+          <div class="kpi-note">Base de la cohorte</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Segundo año siguiente</div>
+          <div class="kpi-value" id="kpiRetencionSegundo">—</div>
+          <div class="kpi-note">Estudiantes observados en t+1</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Cohortes calculables</div>
+          <div class="kpi-value" id="kpiRetencionCohortes">—</div>
+          <div class="kpi-note">Períodos con año siguiente disponible</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card chart-card-wide">
+          <div class="chart-title">Evolución de retención de primer año</div>
+          <div class="chart-subtitle">Por cohorte de ingreso</div>
+          <div class="bar-chart" id="graficoRetencionCohorte"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Retención por sede</div>
+          <div class="chart-subtitle">Para los filtros seleccionados</div>
+          <div class="bar-chart" id="graficoRetencionSede"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Retención por carrera</div>
+          <div class="chart-subtitle">Hasta 12 carreras</div>
+          <div class="bar-chart" id="graficoRetencionCarrera"></div>
+        </article>
+      </section>
+
+      <div class="dataset-status" id="retencionEstado">
+        Leyendo composicion_matricula.csv...
+      </div>
+    </main>
+  `;
+}
+
+function cargarRetencionDesdeComposicion_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.retencion = respuesta.registros;
+
+      aplicarDatosRetencion_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('retencionEstado');
+      const resumen = document.getElementById('retencionResumen');
+
+      if (resumen) {
+        resumen.textContent = 'No fue posible calcular Retención 1er año.';
+      }
+
+      if (estado) {
+        estado.textContent =
+          'El indicador requiere Composición matrícula con al menos dos años consecutivos. ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+    })
+    .obtenerDataset('composicion_matricula');
+}
+
+function aplicarDatosRetencion_(respuesta){
+  const registros = respuesta.registros || [];
+  const anos = [...new Set(
+    registros
+      .map(r => Number(extraerAnoFrontend_(r.ANIO)))
+      .filter(Number.isFinite)
+  )].sort((a,b) => a-b);
+
+  const cohortes = anos.filter(ano => anos.includes(ano + 1));
+
+  cargarOpcionesFiltro_(
+    'filtroRetencionCohorte',
+    cohortes.map(String),
+    'Todas'
+  );
+
+  cargarOpcionesFiltro_(
+    'filtroRetencionSede',
+    [...new Set(registros.map(r => String(r.SEDE || '').trim()).filter(Boolean))].sort(),
+    'Todas'
+  );
+
+  cargarOpcionesFiltro_(
+    'filtroRetencionJornada',
+    [...new Set(registros.map(r => String(r.JORNADA || '').trim()).filter(Boolean))].sort(),
+    'Todas'
+  );
+
+  cargarOpcionesFiltroEtiquetadas_(
+    'filtroRetencionCarrera',
+    obtenerCarrerasNormalizadasRetencion_(registros),
+    'Todas',
+    valor => etiquetaCarreraRetencion_(valor)
+  );
+
+  configurarFiltrosRetencion_();
+  actualizarVisualizacionesRetencion_();
+
+  const resumen = document.getElementById('retencionResumen');
+  const estado = document.getElementById('retencionEstado');
+
+  if (resumen) {
+    resumen.textContent =
+      `Indicador derivado desde ${respuesta.archivoOficial} · ` +
+      `${cohortes.length} cohortes calculables`;
+  }
+
+  if (estado) {
+    estado.textContent =
+      'Retención calculada bajo la regla: Segundo Año t+1 / Primer Año t.';
+    estado.classList.remove('error');
+  }
+}
+
+function configurarFiltrosRetencion_(){
+  [
+    'filtroRetencionCohorte',
+    'filtroRetencionSede',
+    'filtroRetencionJornada',
+    'filtroRetencionCarrera'
+  ].forEach(function(id){
+    const control = document.getElementById(id);
+    if (!control || control.dataset.listenerConfigurado === '1') return;
+
+    control.addEventListener('change', actualizarVisualizacionesRetencion_);
+    control.dataset.listenerConfigurado = '1';
+  });
+}
+
+function obtenerFiltrosRetencion_(){
+  return {
+    cohorte: obtenerValorFiltro_('filtroRetencionCohorte'),
+    sede: obtenerValorFiltro_('filtroRetencionSede'),
+    jornada: obtenerValorFiltro_('filtroRetencionJornada'),
+    carrera: obtenerValorFiltro_('filtroRetencionCarrera')
+  };
+}
+
+function obtenerCarrerasNormalizadasRetencion_(registros){
+  return [...new Set(
+    (registros || [])
+      .map(r => normalizarCarreraRetencion_(r.CARRERA))
+      .filter(Boolean)
+  )].sort();
+}
+
+function normalizarCarreraRetencion_(valor){
+  let texto = String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/[.,;:()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  // Regla general acordada: TNS = TÉCNICO DE NIVEL SUPERIOR.
+  texto = texto.replace(/^TNS\s+/, 'TECNICO DE NIVEL SUPERIOR ');
+  texto = texto.replace(/^TECNICO NIVEL SUPERIOR\s+/, 'TECNICO DE NIVEL SUPERIOR ');
+
+  return texto;
+}
+
+function etiquetaCarreraRetencion_(valor){
+  return String(valor || '')
+    .replace(/^TECNICO DE NIVEL SUPERIOR /, 'TÉCNICO DE NIVEL SUPERIOR ');
+}
+
+function filtrarRegistrosRetencion_(registros, ano, filtros){
+  return (registros || []).filter(function(registro){
+    if (Number(extraerAnoFrontend_(registro.ANIO)) !== Number(ano)) {
+      return false;
+    }
+
+    if (filtros.sede && String(registro.SEDE) !== filtros.sede) {
+      return false;
+    }
+
+    if (filtros.jornada && String(registro.JORNADA) !== filtros.jornada) {
+      return false;
+    }
+
+    if (
+      filtros.carrera &&
+      normalizarCarreraRetencion_(registro.CARRERA) !== filtros.carrera
+    ) {
+      return false;
+    }
+
+    return true;
+  });
+}
+
+function calcularRetencionCohorte_(registros, cohorte, filtros){
+  const primeroRegs = filtrarRegistrosRetencion_(registros, cohorte, filtros);
+  const segundoRegs = filtrarRegistrosRetencion_(registros, cohorte + 1, filtros);
+
+  const primero = sumarCampoComposicion_(primeroRegs, 'PRIMER_ANIO');
+  const segundo = sumarCampoComposicion_(segundoRegs, 'SEGUNDO_ANIO');
+
+  if (primero <= 0) {
+    return null;
+  }
+
+  return {
+    cohorte: cohorte,
+    primero: primero,
+    segundo: segundo,
+    retencion: (segundo / primero) * 100
+  };
+}
+
+function obtenerSeriesRetencion_(registros, filtros){
+  const anos = [...new Set(
+    (registros || [])
+      .map(r => Number(extraerAnoFrontend_(r.ANIO)))
+      .filter(Number.isFinite)
+  )].sort((a,b) => a-b);
+
+  return anos
+    .filter(ano => anos.includes(ano + 1))
+    .map(ano => calcularRetencionCohorte_(registros, ano, filtros))
+    .filter(Boolean);
+}
+
+function actualizarVisualizacionesRetencion_(){
+  const registros = window.datasetCache.retencion || [];
+  const filtros = obtenerFiltrosRetencion_();
+
+  let serie = obtenerSeriesRetencion_(registros, filtros);
+
+  if (filtros.cohorte) {
+    serie = serie.filter(
+      item => String(item.cohorte) === String(filtros.cohorte)
+    );
+  }
+
+  const primeroTotal = serie.reduce((suma, item) => suma + item.primero, 0);
+  const segundoTotal = serie.reduce((suma, item) => suma + item.segundo, 0);
+  const retencionTotal =
+    primeroTotal > 0 ? (segundoTotal / primeroTotal) * 100 : null;
+
+  asignarTexto_(
+    'kpiRetencionPorcentaje',
+    retencionTotal === null ? '—' : formatearPorcentaje_(retencionTotal)
+  );
+  asignarTexto_('kpiRetencionPrimero', formatearNumero_(primeroTotal));
+  asignarTexto_('kpiRetencionSegundo', formatearNumero_(segundoTotal));
+  asignarTexto_('kpiRetencionCohortes', formatearNumero_(serie.length));
+
+  dibujarBarrasPorcentaje_(
+    'graficoRetencionCohorte',
+    serie.map(item => ({
+      etiqueta:String(item.cohorte),
+      valor:item.retencion
+    }))
+  );
+
+  dibujarRetencionPorDimension_(
+    'graficoRetencionSede',
+    registros,
+    filtros,
+    'SEDE'
+  );
+
+  dibujarRetencionPorCarrera_(
+    'graficoRetencionCarrera',
+    registros,
+    filtros
+  );
+}
+
+function dibujarRetencionPorDimension_(id, registros, filtros, campo){
+  const valores = [...new Set(
+    (registros || [])
+      .map(r => String(r[campo] || '').trim())
+      .filter(Boolean)
+  )].sort();
+
+  const datos = valores.map(function(valor){
+    const filtrosDimension = Object.assign({}, filtros);
+
+    if (campo === 'SEDE') {
+      filtrosDimension.sede = valor;
+    }
+
+    let serie = obtenerSeriesRetencion_(registros, filtrosDimension);
+
+    if (filtros.cohorte) {
+      serie = serie.filter(
+        item => String(item.cohorte) === String(filtros.cohorte)
+      );
+    }
+
+    const primero = serie.reduce((suma, item) => suma + item.primero, 0);
+    const segundo = serie.reduce((suma, item) => suma + item.segundo, 0);
+
+    return {
+      etiqueta:valor,
+      valor:primero > 0 ? (segundo / primero) * 100 : 0
+    };
+  }).filter(item => item.valor > 0);
+
+  dibujarBarrasPorcentaje_(id, datos);
+}
+
+function dibujarRetencionPorCarrera_(id, registros, filtros){
+  const carreras = obtenerCarrerasNormalizadasRetencion_(registros);
+
+  const datos = carreras.map(function(carrera){
+    const filtrosCarrera = Object.assign({}, filtros, {
+      carrera:carrera
+    });
+
+    let serie = obtenerSeriesRetencion_(registros, filtrosCarrera);
+
+    if (filtros.cohorte) {
+      serie = serie.filter(
+        item => String(item.cohorte) === String(filtros.cohorte)
+      );
+    }
+
+    const primero = serie.reduce((suma, item) => suma + item.primero, 0);
+    const segundo = serie.reduce((suma, item) => suma + item.segundo, 0);
+
+    return {
+      etiqueta:etiquetaCarreraRetencion_(carrera),
+      valor:primero > 0 ? (segundo / primero) * 100 : 0
+    };
+  })
+  .filter(item => item.valor > 0)
+  .sort((a,b) => b.valor - a.valor)
+  .slice(0,12);
+
+  dibujarBarrasPorcentaje_(id, datos);
+}
+
+function dibujarBarrasPorcentaje_(id, datos){
+  const contenedor = document.getElementById(id);
+  if (!contenedor) return;
+
+  const items = datos || [];
+
+  if (!items.length) {
+    contenedor.innerHTML =
+      '<div class="chart-empty">No hay datos calculables para la selección actual.</div>';
+    return;
+  }
+
+  const maximo = Math.max(...items.map(item => item.valor), 100);
+
+  contenedor.innerHTML = items.map(function(item){
+    const porcentaje = Math.max(
+      2,
+      Math.min(100, (item.valor / maximo) * 100)
+    );
+
+    return `
+      <div class="bar-row">
+        <div class="bar-label" title="${escapeHtml_(item.etiqueta)}">
+          ${escapeHtml_(item.etiqueta)}
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${porcentaje.toFixed(2)}%"></div>
+        </div>
+        <div class="bar-value">${formatearPorcentaje_(item.valor)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function formatearPorcentaje_(valor){
+  return Number(valor || 0).toLocaleString(
+    'es-CL',
+    {
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    }
+  ) + '%';
+}
+
+function renderTituladosBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Titulados</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('titulados')">
+              Descargar CSV
+            </button>
+            <button type="button" class="update-link" id="toggleUploadBtn">
+              ↻ Actualizar registros
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="tituladosResumen">
+            Cargando dataset oficial...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span>Año</span>
+            <select id="filtroTituladosAno" disabled><option value="">Todos</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Sede</span>
+            <select id="filtroTituladosSede" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Área</span>
+            <select id="filtroTituladosArea" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Carrera</span>
+            <select id="filtroTituladosCarrera" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Jornada</span>
+            <select id="filtroTituladosJornada" disabled><option value="">Todas</option></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">Total titulados</div>
+          <div class="kpi-value" id="kpiTituladosTotal">—</div>
+          <div class="kpi-note">Suma de TOTAL TITULACIONES</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Mujeres tituladas</div>
+          <div class="kpi-value" id="kpiTituladasMujeres">—</div>
+          <div class="kpi-note">Según programa</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Hombres titulados</div>
+          <div class="kpi-value" id="kpiTituladosHombres">—</div>
+          <div class="kpi-note">Según programa</div>
+        </article>
+        <article class="kpi-card">
+          <div class="kpi-label">Carreras con titulados</div>
+          <div class="kpi-value" id="kpiTituladosCarreras">—</div>
+          <div class="kpi-note">Carreras presentes en la selección</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card">
+          <div class="chart-title">Evolución de titulados por año</div>
+          <div class="chart-subtitle">Suma de titulaciones por período</div>
+          <div class="bar-chart" id="graficoTituladosAno"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Titulados por sede</div>
+          <div class="chart-subtitle">Distribución según sede</div>
+          <div class="bar-chart" id="graficoTituladosSede"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Titulados por área del conocimiento</div>
+          <div class="chart-subtitle">Distribución por área</div>
+          <div class="bar-chart" id="graficoTituladosArea"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Distribución por género</div>
+          <div class="chart-subtitle">Mujeres, hombres y NB/indefinido</div>
+          <div class="bar-chart" id="graficoTituladosGenero"></div>
+        </article>
+
+        <article class="chart-card chart-card-wide">
+          <div class="chart-title">Titulados por carrera</div>
+          <div class="chart-subtitle">Hasta 12 carreras, ordenadas por número de titulados</div>
+          <div class="bar-chart" id="graficoTituladosCarrera"></div>
+        </article>
+      </section>
+
+      <div class="dataset-status" id="tituladosEstado">
+        Leyendo titulados.csv desde Drive...
+      </div>
+    </main>
+  `;
+
+  configurarToggleActualizacion_();
+  configurarPanelActualizacion_('titulados');
+}
+
+function cargarTituladosOficial_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.titulados = respuesta.registros;
+      window.datasetMeta.titulados = {
+        cantidadRegistros: respuesta.cantidadRegistros,
+        cantidadColumnas: respuesta.cantidadColumnas,
+        encabezados: respuesta.encabezados
+      };
+      aplicarDatosTitulados_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('tituladosEstado');
+      const resumen = document.getElementById('tituladosResumen');
+
+      if (resumen) resumen.textContent = 'No existe todavía un dataset oficial de Titulados.';
+      if (estado) {
+        estado.textContent =
+          'Use “Actualizar registros” para cargar por primera vez titulados.csv. ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+    })
+    .obtenerDataset('titulados');
+}
+
+function aplicarDatosTitulados_(respuesta){
+  const resumen = document.getElementById('tituladosResumen');
+  const estado = document.getElementById('tituladosEstado');
+
+  cargarOpcionesFiltroEtiquetadas_(
+    'filtroTituladosAno',
+    respuesta.filtros.anos,
+    'Todos',
+    valor => String(valor).replace(/^TIT_/, '')
+  );
+  cargarOpcionesFiltro_('filtroTituladosSede', respuesta.filtros.sedes, 'Todas');
+  cargarOpcionesFiltro_('filtroTituladosArea', respuesta.filtros.areas, 'Todas');
+  cargarOpcionesFiltro_('filtroTituladosCarrera', respuesta.filtros.carreras, 'Todas');
+  cargarOpcionesFiltro_('filtroTituladosJornada', respuesta.filtros.jornadas, 'Todas');
+
+  configurarFiltrosTitulados_();
+  actualizarVisualizacionesTitulados_();
+
+  if (resumen) {
+    resumen.textContent =
+      `${respuesta.cantidadRegistros.toLocaleString('es-CL')} registros · ` +
+      `${respuesta.cantidadColumnas.toLocaleString('es-CL')} columnas · ${respuesta.archivoOficial}`;
+  }
+
+  if (estado) {
+    estado.textContent = 'Dataset oficial cargado correctamente.';
+    estado.classList.remove('error');
+  }
+}
+
+function configurarFiltrosTitulados_(){
+  [
+    'filtroTituladosAno',
+    'filtroTituladosSede',
+    'filtroTituladosArea',
+    'filtroTituladosCarrera',
+    'filtroTituladosJornada'
+  ].forEach(function(id){
+    const control = document.getElementById(id);
+    if (!control || control.dataset.listenerConfigurado === '1') return;
+    control.addEventListener('change', actualizarVisualizacionesTitulados_);
+    control.dataset.listenerConfigurado = '1';
+  });
+}
+
+function obtenerFiltrosTitulados_(){
+  return {
+    ano: obtenerValorFiltro_('filtroTituladosAno'),
+    sede: obtenerValorFiltro_('filtroTituladosSede'),
+    area: obtenerValorFiltro_('filtroTituladosArea'),
+    carrera: obtenerValorFiltro_('filtroTituladosCarrera'),
+    jornada: obtenerValorFiltro_('filtroTituladosJornada')
+  };
+}
+
+function obtenerTituladosFiltrados_(){
+  const registros = window.datasetCache.titulados || [];
+  const filtros = obtenerFiltrosTitulados_();
+
+  return registros.filter(function(registro){
+    return (!filtros.ano || String(registro['AÑO']) === filtros.ano) &&
+           (!filtros.sede || String(registro['NOMBRE SEDE']) === filtros.sede) &&
+           (!filtros.area || String(registro['ÁREA DEL CONOCIMIENTO']) === filtros.area) &&
+           (!filtros.carrera || String(registro['NOMBRE CARRERA']) === filtros.carrera) &&
+           (!filtros.jornada || String(registro['JORNADA']) === filtros.jornada);
+  });
+}
+
+function actualizarVisualizacionesTitulados_(){
+  const registros = obtenerTituladosFiltrados_();
+
+  const total = sumarCampo_(registros, 'TOTAL TITULACIONES');
+  const mujeres = sumarCampo_(registros, 'TITULACIONES MUJERES POR PROGRAMA');
+  const hombres = sumarCampo_(registros, 'TITULACIONES HOMBRES POR PROGRAMA');
+  const nb = sumarCampo_(registros, 'TITULACIONES NB E INDEFINIDO POR PROGRAMA');
+
+  asignarTexto_('kpiTituladosTotal', formatearNumero_(total));
+  asignarTexto_('kpiTituladasMujeres', formatearNumero_(mujeres));
+  asignarTexto_('kpiTituladosHombres', formatearNumero_(hombres));
+  asignarTexto_(
+    'kpiTituladosCarreras',
+    formatearNumero_(cantidadUnicos_(registros, 'NOMBRE CARRERA'))
+  );
+
+  dibujarBarras_(
+    'graficoTituladosAno',
+    agregarPorCampoNumerico_(registros, 'AÑO', 'TOTAL TITULACIONES', true),
+    12
+  );
+  dibujarBarras_(
+    'graficoTituladosSede',
+    agregarPorCampoNumerico_(registros, 'NOMBRE SEDE', 'TOTAL TITULACIONES'),
+    12
+  );
+  dibujarBarras_(
+    'graficoTituladosArea',
+    agregarPorCampoNumerico_(registros, 'ÁREA DEL CONOCIMIENTO', 'TOTAL TITULACIONES'),
+    12
+  );
+  dibujarBarras_(
+    'graficoTituladosCarrera',
+    agregarPorCampoNumerico_(registros, 'NOMBRE CARRERA', 'TOTAL TITULACIONES'),
+    12
+  );
+
+  dibujarBarras_(
+    'graficoTituladosGenero',
+    [
+      { etiqueta:'Mujeres', valor:mujeres },
+      { etiqueta:'Hombres', valor:hombres },
+      { etiqueta:'NB / indefinido', valor:nb }
+    ],
+    3
+  );
+}
+
+function sumarCampo_(registros, campo){
+  return registros.reduce(function(suma, registro){
+    return suma + numeroGenerico_(registro[campo]);
+  }, 0);
+}
+
+function agregarPorCampoNumerico_(registros, campoAgrupar, campoValor, limpiarAno){
+  const mapa = {};
+
+  registros.forEach(function(registro){
+    let etiqueta = String(registro[campoAgrupar] || '').trim();
+    if (!etiqueta) return;
+
+    if (limpiarAno) etiqueta = etiqueta.replace(/^TIT_/, '');
+
+    mapa[etiqueta] = (mapa[etiqueta] || 0) + numeroGenerico_(registro[campoValor]);
+  });
+
+  const resultado = Object.keys(mapa)
+    .map(etiqueta => ({ etiqueta, valor: mapa[etiqueta] }));
+
+  if (limpiarAno) {
+    return resultado.sort((a,b) => Number(a.etiqueta) - Number(b.etiqueta));
+  }
+
+  return resultado.sort((a,b) => b.valor - a.valor);
+}
+
+function configurarPanelActualizacion_(tipo){
+  const title = document.getElementById('uploadPanelTitle');
+  const help = document.getElementById('uploadPanelHelp');
+  const panel = document.getElementById('uploadPanel');
+
+  if (!panel) return;
+
+  panel.dataset.tipoDataset = tipo;
+
+  if (tipo === 'matricula') {
+    if (title) title.textContent = 'Actualizar registros de matrícula';
+    if (help) {
+      help.textContent =
+        'Seleccione el CSV de matrícula. Se validará antes de reemplazar matricula.csv.';
+    }
+  }
+
+  if (tipo === 'composicion_matricula') {
+    if (title) title.textContent = 'Actualizar composición de matrícula';
+
+    if (help) {
+      help.textContent =
+        'Seleccione composicion_matricula.csv con las columnas ANIO, SEDE, JORNADA, CARRERA, PRIMER_ANIO, SEGUNDO_ANIO y PROCESO_TITULACION.';
+    }
+  }
+
+  if (tipo === 'dotacion') {
+    if (title) title.textContent = 'Actualizar dotación docente';
+
+    if (help) {
+      help.textContent =
+        'Seleccione el CSV bruto de Personal Académico de SIES. Se normalizarán sus tres filas de encabezados antes de reemplazar dotacion.csv.';
+    }
+  }
+
+  if (tipo === 'oferta') {
+    if (title) title.textContent = 'Actualizar registros de oferta académica';
+
+    if (help) {
+      help.textContent =
+        'Seleccione el CSV bruto de Oferta Académica de SIES. Se validará antes de reemplazar oferta.csv.';
+    }
+  }
+
+  if (tipo === 'titulados') {
+    if (title) title.textContent = 'Actualizar registros de titulados';
+    if (help) {
+      help.textContent =
+        'Seleccione el CSV de titulados. Se validará antes de reemplazar titulados.csv.';
+    }
+  }
+}
+
+function renderDotacionBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Dotación docente</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('dotacion')">
+              Descargar CSV
+            </button>
+            <button type="button" class="update-link" id="toggleUploadBtn">
+              ↻ Actualizar registros
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="dotacionResumen">
+            Cargando dataset oficial...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span>Año</span>
+            <select id="filtroDotacionAno" disabled>
+              <option value="">Todos</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card">
+          <div class="kpi-label">JCE total</div>
+          <div class="kpi-value" id="kpiDotacionTotal">—</div>
+          <div class="kpi-note">Jornadas completas equivalentes</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">JCE mujeres</div>
+          <div class="kpi-value" id="kpiDotacionMujeres">—</div>
+          <div class="kpi-note">Según SIES</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">JCE hombres</div>
+          <div class="kpi-value" id="kpiDotacionHombres">—</div>
+          <div class="kpi-note">Según SIES</div>
+        </article>
+
+        <article class="kpi-card">
+          <div class="kpi-label">Edad promedio</div>
+          <div class="kpi-value" id="kpiDotacionEdad">—</div>
+          <div class="kpi-note">Ponderada por JCE</div>
+        </article>
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card chart-card-wide">
+          <div class="chart-title">Evolución de dotación docente</div>
+          <div class="chart-subtitle">JCE total por año</div>
+          <div class="bar-chart" id="graficoDotacionAno"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Composición por sexo</div>
+          <div class="chart-subtitle">JCE mujeres, hombres y NB/indefinido</div>
+          <div class="bar-chart" id="graficoDotacionSexo"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Nivel de formación</div>
+          <div class="chart-subtitle">Distribución de JCE por formación</div>
+          <div class="bar-chart" id="graficoDotacionFormacion"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Horas contratadas</div>
+          <div class="chart-subtitle">Distribución de JCE por rango de horas</div>
+          <div class="bar-chart" id="graficoDotacionHoras"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Rangos de edad</div>
+          <div class="chart-subtitle">JCE de mujeres y hombres agregados</div>
+          <div class="bar-chart" id="graficoDotacionEdad"></div>
+        </article>
+      </section>
+
+      <div class="dataset-status" id="dotacionEstado">
+        Leyendo dotacion.csv desde Drive...
+      </div>
+    </main>
+  `;
+
+  configurarToggleActualizacion_();
+  configurarPanelActualizacion_('dotacion');
+}
+
+function cargarDotacionOficial_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.dotacion = respuesta.registros;
+      window.datasetMeta.dotacion = {
+        cantidadRegistros: respuesta.cantidadRegistros,
+        cantidadColumnas: respuesta.cantidadColumnas,
+        encabezados: respuesta.encabezados
+      };
+
+      aplicarDatosDotacion_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('dotacionEstado');
+      const resumen = document.getElementById('dotacionResumen');
+
+      if (resumen) {
+        resumen.textContent = 'El dataset oficial debe actualizarse con la fuente SIES.';
+      }
+
+      if (estado) {
+        estado.textContent =
+          'Use “Actualizar registros” para cargar el CSV bruto de Personal Académico SIES. ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+    })
+    .obtenerDataset('dotacion');
+}
+
+function aplicarDatosDotacion_(respuesta){
+  cargarOpcionesFiltro_(
+    'filtroDotacionAno',
+    respuesta.filtros.anos,
+    'Todos'
+  );
+
+  const control = document.getElementById('filtroDotacionAno');
+  if (control && control.dataset.listenerConfigurado !== '1') {
+    control.addEventListener('change', actualizarVisualizacionesDotacion_);
+    control.dataset.listenerConfigurado = '1';
+  }
+
+  actualizarVisualizacionesDotacion_();
+
+  const resumen = document.getElementById('dotacionResumen');
+  const estado = document.getElementById('dotacionEstado');
+
+  if (resumen) {
+    resumen.textContent =
+      `${respuesta.cantidadRegistros.toLocaleString('es-CL')} períodos · ` +
+      `${respuesta.cantidadColumnas.toLocaleString('es-CL')} columnas · ${respuesta.archivoOficial}`;
+  }
+
+  if (estado) {
+    estado.textContent = 'Dataset oficial cargado correctamente.';
+    estado.classList.remove('error');
+  }
+}
+
+function obtenerDotacionFiltrada_(){
+  const registros = window.datasetCache.dotacion || [];
+  const ano = obtenerValorFiltro_('filtroDotacionAno');
+
+  return registros.filter(function(registro){
+    return !ano || String(registro.ANIO) === String(ano);
+  });
+}
+
+function numeroDecimal_(valor){
+  const texto = String(valor === null || valor === undefined ? '' : valor)
+    .trim()
+    .replace(',', '.');
+
+  const numero = Number(texto);
+  return Number.isFinite(numero) ? numero : 0;
+}
+
+function sumarDotacionCampo_(registros, campo){
+  return (registros || []).reduce(function(suma, registro){
+    return suma + numeroDecimal_(registro[campo]);
+  }, 0);
+}
+
+function promedioPonderadoDotacion_(registros){
+  let sumaPonderada = 0;
+  let peso = 0;
+
+  (registros || []).forEach(function(registro){
+    const jce = numeroDecimal_(registro.JCE_TOTAL);
+    const edad = numeroDecimal_(registro.EDAD_PROMEDIO_TOTAL);
+
+    if (jce > 0 && edad > 0) {
+      sumaPonderada += edad * jce;
+      peso += jce;
+    }
+  });
+
+  return peso > 0 ? sumaPonderada / peso : 0;
+}
+
+function actualizarVisualizacionesDotacion_(){
+  const registros = obtenerDotacionFiltrada_();
+
+  const total = sumarDotacionCampo_(registros, 'JCE_TOTAL');
+  const mujeres = sumarDotacionCampo_(registros, 'JCE_MUJERES');
+  const hombres = sumarDotacionCampo_(registros, 'JCE_HOMBRES');
+  const nb = sumarDotacionCampo_(registros, 'JCE_NO_BINARIO_INDEFINIDO');
+  const edad = promedioPonderadoDotacion_(registros);
+
+  asignarTexto_('kpiDotacionTotal', formatearDecimal_(total, 1));
+  asignarTexto_('kpiDotacionMujeres', formatearDecimal_(mujeres, 1));
+  asignarTexto_('kpiDotacionHombres', formatearDecimal_(hombres, 1));
+  asignarTexto_('kpiDotacionEdad', edad > 0 ? formatearDecimal_(edad, 1) : '—');
+
+  const todos = window.datasetCache.dotacion || [];
+
+  dibujarBarrasDecimal_(
+    'graficoDotacionAno',
+    todos
+      .map(r => ({
+        etiqueta:String(r.ANIO),
+        valor:numeroDecimal_(r.JCE_TOTAL)
+      }))
+      .sort((a,b) => Number(a.etiqueta) - Number(b.etiqueta))
+  );
+
+  dibujarBarrasDecimal_(
+    'graficoDotacionSexo',
+    [
+      {etiqueta:'Mujeres', valor:mujeres},
+      {etiqueta:'Hombres', valor:hombres},
+      {etiqueta:'NB / indefinido', valor:nb}
+    ]
+  );
+
+  dibujarBarrasDecimal_(
+    'graficoDotacionFormacion',
+    [
+      {etiqueta:'Doctor', valor:sumarDotacionCampo_(registros,'JCE_DOCTOR')},
+      {etiqueta:'Magíster', valor:sumarDotacionCampo_(registros,'JCE_MAGISTER')},
+      {etiqueta:'Título profesional', valor:sumarDotacionCampo_(registros,'JCE_TITULO_PROFESIONAL')},
+      {etiqueta:'Licenciatura', valor:sumarDotacionCampo_(registros,'JCE_LICENCIATURA')},
+      {etiqueta:'TNS', valor:sumarDotacionCampo_(registros,'JCE_TNS')},
+      {etiqueta:'Técnico nivel medio', valor:sumarDotacionCampo_(registros,'JCE_TNM')},
+      {etiqueta:'Otros / sin info',
+       valor:
+         sumarDotacionCampo_(registros,'JCE_ESPECIALIDAD_MEDICA_ODONTOLOGICA') +
+         sumarDotacionCampo_(registros,'JCE_LICENCIA_MEDIA') +
+         sumarDotacionCampo_(registros,'JCE_SIN_TITULO_GRADO') +
+         sumarDotacionCampo_(registros,'JCE_FORMACION_SIN_INFO')}
+    ].filter(item => item.valor > 0)
+     .sort((a,b) => b.valor - a.valor)
+  );
+
+  dibujarBarrasDecimal_(
+    'graficoDotacionHoras',
+    [
+      {etiqueta:'Menos de 11 h', valor:sumarDotacionCampo_(registros,'JCE_HORAS_MENOS_11')},
+      {etiqueta:'11 a <23 h', valor:sumarDotacionCampo_(registros,'JCE_HORAS_11_22')},
+      {etiqueta:'23 a <39 h', valor:sumarDotacionCampo_(registros,'JCE_HORAS_23_38')},
+      {etiqueta:'39 h o más', valor:sumarDotacionCampo_(registros,'JCE_HORAS_39_MAS')}
+    ].filter(item => item.valor > 0)
+  );
+
+  dibujarBarrasDecimal_(
+    'graficoDotacionEdad',
+    [
+      {
+        etiqueta:'Menos de 35',
+        valor:sumarDotacionCampo_(registros,'JCE_MUJER_MENOS_35') +
+              sumarDotacionCampo_(registros,'JCE_HOMBRE_MENOS_35')
+      },
+      {
+        etiqueta:'35 a 44',
+        valor:sumarDotacionCampo_(registros,'JCE_MUJER_35_44') +
+              sumarDotacionCampo_(registros,'JCE_HOMBRE_35_44')
+      },
+      {
+        etiqueta:'45 a 54',
+        valor:sumarDotacionCampo_(registros,'JCE_MUJER_45_54') +
+              sumarDotacionCampo_(registros,'JCE_HOMBRE_45_54')
+      },
+      {
+        etiqueta:'55 a 64',
+        valor:sumarDotacionCampo_(registros,'JCE_MUJER_55_64') +
+              sumarDotacionCampo_(registros,'JCE_HOMBRE_55_64')
+      },
+      {
+        etiqueta:'65 o más',
+        valor:sumarDotacionCampo_(registros,'JCE_MUJER_65_MAS') +
+              sumarDotacionCampo_(registros,'JCE_HOMBRE_65_MAS')
+      }
+    ].filter(item => item.valor > 0)
+  );
+}
+
+function formatearDecimal_(valor, decimales){
+  return Number(valor || 0).toLocaleString(
+    'es-CL',
+    {
+      minimumFractionDigits:decimales,
+      maximumFractionDigits:decimales
+    }
+  );
+}
+
+function dibujarBarrasDecimal_(id, datos){
+  const contenedor = document.getElementById(id);
+  if (!contenedor) return;
+
+  const items = datos || [];
+
+  if (!items.length) {
+    contenedor.innerHTML =
+      '<div class="chart-empty">No hay datos para la selección actual.</div>';
+    return;
+  }
+
+  const maximo = Math.max(...items.map(item => item.valor), 1);
+
+  contenedor.innerHTML = items.map(function(item){
+    const porcentaje = Math.max(2, (item.valor / maximo) * 100);
+
+    return `
+      <div class="bar-row">
+        <div class="bar-label" title="${escapeHtml_(item.etiqueta)}">
+          ${escapeHtml_(item.etiqueta)}
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill" style="width:${porcentaje.toFixed(2)}%"></div>
+        </div>
+        <div class="bar-value">${formatearDecimal_(item.valor, 1)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+
+function renderTasaTitulacionBase_(){
+  const content = document.getElementById('tabContent');
+
+  content.innerHTML = `
+    <main class="dataset-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Tasa de titulación</div>
+            <button type="button" class="download-link" onclick="descargarCsv_('tasa_titulacion')">
+              Descargar CSV
+            </button>
+          </div>
+          <div class="dataset-view-subtitle" id="tasaTitulacionResumen">
+            Calculando desde Titulados y Composición matrícula...
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros de visualización</div>
+        <div class="filter-grid">
+          <label class="filter-field">
+            <span>Cohorte / año</span>
+            <select id="filtroTasaTitulacionCohorte" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Sede</span>
+            <select id="filtroTasaTitulacionSede" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Jornada</span>
+            <select id="filtroTasaTitulacionJornada" disabled><option value="">Todas</option></select>
+          </label>
+          <label class="filter-field">
+            <span>Carrera</span>
+            <select id="filtroTasaTitulacionCarrera" disabled><option value="">Todas</option></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="indicator-section">
+        <div class="indicator-section-heading">
+          <div class="indicator-section-title">Conversión PT</div>
+          <div class="indicator-section-description">
+            Indica qué porcentaje de quienes se matricularon en Proceso de Titulación
+            durante un año obtiene su título en ese mismo año.
+          </div>
+        </div>
+
+        <section class="kpi-grid kpi-grid-three">
+          <article class="kpi-card">
+            <div class="kpi-label">Matriculados en PT</div>
+            <div class="kpi-value" id="kpiConversionPTMatriculados">—</div>
+            <div class="kpi-note">Proceso de Titulación del año seleccionado</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-label">Titulados del mismo año</div>
+            <div class="kpi-value" id="kpiConversionPTTitulados">—</div>
+            <div class="kpi-note">Titulaciones registradas en el mismo año calendario</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-label">Conversión PT</div>
+            <div class="kpi-value" id="kpiConversionPT">—</div>
+            <div class="kpi-note">Titulados / Matriculados en PT</div>
+          </article>
+        </section>
+
+        <section class="charts-grid">
+          <article class="chart-card chart-card-wide">
+            <div class="chart-title">Conversión del proceso de titulación</div>
+            <div class="chart-subtitle">
+              Titulados del año / matriculados en Proceso de Título del mismo año
+            </div>
+            <div class="bar-chart" id="graficoConversionPTAno"></div>
+          </article>
+        </section>
+      </section>
+
+      <section class="indicator-section">
+        <div class="indicator-section-heading">
+          <div class="indicator-section-title">Tasa de titulación por cohorte</div>
+          <div class="indicator-section-description">
+            Se atribuyen los titulados del año X a la cohorte X−2.
+            Esta es una aproximación mientras no se disponga del año real de ingreso
+            de cada titulado.
+          </div>
+        </div>
+
+        <section class="kpi-grid kpi-grid-three">
+          <article class="kpi-card">
+            <div class="kpi-label">Primer año cohorte</div>
+            <div class="kpi-value" id="kpiTasaPrimerAno">—</div>
+            <div class="kpi-note">Matrícula inicial de la cohorte</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-label">Titulados atribuidos</div>
+            <div class="kpi-value" id="kpiTasaTitulados">—</div>
+            <div class="kpi-note">Titulados registrados dos años después</div>
+          </article>
+
+          <article class="kpi-card">
+            <div class="kpi-label">Tasa de titulación</div>
+            <div class="kpi-value" id="kpiTasaTitulacion">—</div>
+            <div class="kpi-note">Titulados cohorte+2 / Primer año cohorte</div>
+          </article>
+        </section>
+
+        <section class="charts-grid">
+          <article class="chart-card chart-card-wide">
+            <div class="chart-title">Tasa de titulación por cohorte</div>
+            <div class="chart-subtitle">
+              Supuesto metodológico: titulados del año X pertenecen a la cohorte X−2
+            </div>
+            <div class="bar-chart" id="graficoTasaTitulacionCohorte"></div>
+          </article>
+        </section>
+      </section>
+
+      <div class="dataset-status" id="tasaTitulacionEstado">
+        Calculando indicador...
+      </div>
+    </main>
+  `;
+}
+function cargarTasaTitulacion_(){
+  google.script.run
+    .withSuccessHandler(function(respuesta){
+      window.datasetCache.tasa_titulacion = respuesta;
+      aplicarDatosTasaTitulacion_(respuesta);
+    })
+    .withFailureHandler(function(error){
+      const estado = document.getElementById('tasaTitulacionEstado');
+      const resumen = document.getElementById('tasaTitulacionResumen');
+
+      if (resumen) resumen.textContent = 'No fue posible calcular la tasa de titulación.';
+      if (estado) {
+        estado.textContent =
+          'El indicador requiere Titulados y Composición matrícula con datos. ' +
+          (error && error.message ? error.message : String(error));
+        estado.classList.add('error');
+      }
+    })
+    .obtenerDatosTasaTitulacion();
+}
+
+function aplicarDatosTasaTitulacion_(respuesta){
+  const combinado = []
+    .concat((respuesta.composicion || []).map(r => ({
+      cohorte: extraerAnoFrontend_(r.ANIO),
+      sede: normalizarSedeTasa_(r.SEDE),
+      jornada: normalizarTextoTasa_(r.JORNADA),
+      carrera: normalizarCarreraTasa_(r.CARRERA)
+    })))
+    .concat((respuesta.titulados || []).map(r => ({
+      cohorte: String(Number(extraerAnoFrontend_(r['AÑO'])) - 2),
+      sede: normalizarSedeTasa_(r['NOMBRE SEDE']),
+      jornada: normalizarTextoTasa_(r['JORNADA']),
+      carrera: normalizarCarreraTasa_(r['NOMBRE CARRERA'])
+    })));
+
+  cargarOpcionesFiltro_(
+    'filtroTasaTitulacionCohorte',
+    [...new Set(combinado.map(r => r.cohorte).filter(Boolean))]
+      .sort((a,b)=>Number(a)-Number(b)),
+    'Todas'
+  );
+  cargarOpcionesFiltro_(
+    'filtroTasaTitulacionSede',
+    [...new Set(combinado.map(r => r.sede).filter(Boolean))].sort(),
+    'Todas'
+  );
+  cargarOpcionesFiltro_(
+    'filtroTasaTitulacionJornada',
+    [...new Set(combinado.map(r => r.jornada).filter(Boolean))].sort(),
+    'Todas'
+  );
+  cargarOpcionesFiltroEtiquetadas_(
+    'filtroTasaTitulacionCarrera',
+    [...new Set(combinado.map(r => r.carrera).filter(Boolean))].sort(),
+    'Todas',
+    valor => etiquetaCarreraTasa_(valor)
+  );
+
+  [
+    'filtroTasaTitulacionCohorte',
+    'filtroTasaTitulacionSede',
+    'filtroTasaTitulacionJornada',
+    'filtroTasaTitulacionCarrera'
+  ].forEach(function(id){
+    const control = document.getElementById(id);
+    if (!control || control.dataset.listenerConfigurado === '1') return;
+    control.addEventListener('change', actualizarVisualizacionesTasaTitulacion_);
+    control.dataset.listenerConfigurado = '1';
+  });
+
+  actualizarVisualizacionesTasaTitulacion_();
+
+  const resumen = document.getElementById('tasaTitulacionResumen');
+  const estado = document.getElementById('tasaTitulacionEstado');
+
+  if (resumen) {
+    resumen.textContent =
+      'Indicador derivado desde titulados.csv y composicion_matricula.csv.';
+  }
+  if (estado) {
+    estado.textContent =
+      'Tasa de Titulación por cohorte aproximada (x−2). Conversión PT calculada por año calendario.';
+    estado.classList.remove('error');
+  }
+}
+
+function obtenerFiltrosTasaTitulacion_(){
+  return {
+    cohorte: obtenerValorFiltro_('filtroTasaTitulacionCohorte'),
+    sede: obtenerValorFiltro_('filtroTasaTitulacionSede'),
+    jornada: obtenerValorFiltro_('filtroTasaTitulacionJornada'),
+    carrera: obtenerValorFiltro_('filtroTasaTitulacionCarrera')
+  };
+}
+
+function normalizarTextoTasa_(valor){
+  return String(valor || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizarSedeTasa_(valor){
+  return normalizarTextoTasa_(valor).replace(/^SEDE\s+/, '');
+}
+
+function normalizarCarreraTasa_(valor){
+  let texto = normalizarTextoTasa_(valor)
+    .replace(/[.,;:()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  texto = texto.replace(/^TNS\s+/, 'TECNICO DE NIVEL SUPERIOR ');
+  texto = texto.replace(/^TECNICO NIVEL SUPERIOR\s+/, 'TECNICO DE NIVEL SUPERIOR ');
+
+  return texto;
+}
+
+function etiquetaCarreraTasa_(valor){
+  return String(valor || '')
+    .replace(/^TECNICO DE NIVEL SUPERIOR /, 'TÉCNICO DE NIVEL SUPERIOR ');
+}
+
+function coincideDimensionTasa_(registro, fuente, filtros){
+  let sede, jornada, carrera;
+
+  if (fuente === 'titulados') {
+    sede = normalizarSedeTasa_(registro['NOMBRE SEDE']);
+    jornada = normalizarTextoTasa_(registro['JORNADA']);
+    carrera = normalizarCarreraTasa_(registro['NOMBRE CARRERA']);
+  } else {
+    sede = normalizarSedeTasa_(registro.SEDE);
+    jornada = normalizarTextoTasa_(registro.JORNADA);
+    carrera = normalizarCarreraTasa_(registro.CARRERA);
+  }
+
+  return (!filtros.sede || sede === filtros.sede) &&
+         (!filtros.jornada || jornada === filtros.jornada) &&
+         (!filtros.carrera || carrera === filtros.carrera);
+}
+
+function calcularSeriesTasaTitulacion_(respuesta, filtros){
+  const primeroPorCohorte = {};
+  const ptPorAno = {};
+  const tituladosPorAno = {};
+
+  (respuesta.composicion || []).forEach(function(r){
+    if (!coincideDimensionTasa_(r, 'composicion', filtros)) return;
+
+    const ano = Number(extraerAnoFrontend_(r.ANIO));
+    if (!Number.isFinite(ano)) return;
+
+    primeroPorCohorte[ano] =
+      (primeroPorCohorte[ano] || 0) + numeroGenerico_(r.PRIMER_ANIO);
+
+    ptPorAno[ano] =
+      (ptPorAno[ano] || 0) + numeroGenerico_(r.PROCESO_TITULACION);
+  });
+
+  (respuesta.titulados || []).forEach(function(r){
+    if (!coincideDimensionTasa_(r, 'titulados', filtros)) return;
+
+    const ano = Number(extraerAnoFrontend_(r['AÑO']));
+    if (!Number.isFinite(ano)) return;
+
+    tituladosPorAno[ano] =
+      (tituladosPorAno[ano] || 0) + numeroGenerico_(r['TOTAL TITULACIONES']);
+  });
+
+  let cohortes = Object.keys(primeroPorCohorte)
+    .map(Number)
+    .sort((a,b)=>a-b);
+
+  if (filtros.cohorte) {
+    cohortes = cohortes.filter(c => String(c) === String(filtros.cohorte));
+  }
+
+  const tasa = cohortes.map(function(cohorte){
+    const primerAno = primeroPorCohorte[cohorte] || 0;
+    const anoTitulacion = cohorte + 2;
+    const existeTitulacion = Object.prototype.hasOwnProperty.call(
+      tituladosPorAno, anoTitulacion
+    );
+    const titulados = existeTitulacion ? tituladosPorAno[anoTitulacion] : 0;
+
+    return {
+      cohorte,
+      anoTitulacion,
+      primerAno,
+      titulados,
+      valor: primerAno > 0 && existeTitulacion
+        ? (titulados / primerAno) * 100
+        : null
+    };
+  });
+
+  let anosPT = Object.keys(ptPorAno)
+    .map(Number)
+    .sort((a,b)=>a-b);
+
+  if (filtros.cohorte) {
+    anosPT = anosPT.filter(a => String(a) === String(filtros.cohorte));
+  }
+
+  const conversion = anosPT.map(function(ano){
+    const pt = ptPorAno[ano] || 0;
+    const existeTitulacion = Object.prototype.hasOwnProperty.call(
+      tituladosPorAno, ano
+    );
+    const titulados = existeTitulacion ? tituladosPorAno[ano] : 0;
+
+    return {
+      ano,
+      pt,
+      titulados,
+      valor: pt > 0 && existeTitulacion
+        ? (titulados / pt) * 100
+        : null
+    };
+  });
+
+  return { tasa, conversion };
+}
+
+function actualizarVisualizacionesTasaTitulacion_(){
+  const respuesta = window.datasetCache.tasa_titulacion || {
+    titulados:[],
+    composicion:[]
+  };
+  const filtros = obtenerFiltrosTasaTitulacion_();
+  const series = calcularSeriesTasaTitulacion_(respuesta, filtros);
+
+  const tasaValida = series.tasa.filter(i => i.valor !== null);
+  const primerAno = tasaValida.reduce((s,i)=>s+i.primerAno,0);
+  const tituladosAtribuidos = tasaValida.reduce((s,i)=>s+i.titulados,0);
+
+  const conversionValida = series.conversion.filter(i => i.valor !== null);
+  const pt = conversionValida.reduce((s,i)=>s+i.pt,0);
+  const tituladosMismoAno = conversionValida.reduce((s,i)=>s+i.titulados,0);
+
+  asignarTexto_(
+    'kpiTasaTitulacion',
+    primerAno > 0
+      ? formatearPorcentaje_((tituladosAtribuidos/primerAno)*100)
+      : '—'
+  );
+  asignarTexto_('kpiTasaPrimerAno', formatearNumero_(primerAno));
+  asignarTexto_('kpiTasaTitulados', formatearNumero_(tituladosAtribuidos));
+  asignarTexto_(
+    'kpiConversionPTMatriculados',
+    formatearNumero_(pt)
+  );
+  asignarTexto_(
+    'kpiConversionPTTitulados',
+    formatearNumero_(tituladosMismoAno)
+  );
+  asignarTexto_(
+    'kpiConversionPT',
+    pt > 0
+      ? formatearPorcentaje_((tituladosMismoAno/pt)*100)
+      : '—'
+  );
+
+  dibujarBarrasPorcentaje_(
+    'graficoTasaTitulacionCohorte',
+    tasaValida.map(i => ({
+      etiqueta:String(i.cohorte),
+      valor:i.valor
+    }))
+  );
+
+  dibujarBarrasPorcentaje_(
+    'graficoConversionPTAno',
+    conversionValida.map(i => ({
+      etiqueta:String(i.ano),
+      valor:i.valor
+    }))
+  );
+}
+
+</script>
