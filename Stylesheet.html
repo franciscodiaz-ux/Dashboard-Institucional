@@ -1150,3 +1150,35 @@
   }
 </style>
 
+
+<!-- SIGA 2026: tarjetas informativas y carga anual -->
+<style>
+  .siga-kpi-grid{grid-template-columns:repeat(4,minmax(0,1fr));}
+  .siga-kpi-card{min-height:132px;position:relative;}
+  .siga-kpi-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .siga-kpi-title{display:flex;align-items:center;gap:6px;}
+  .siga-info-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border:1px solid #80908A;border-radius:50%;font-family:Georgia,serif;font-size:10px;font-weight:700;font-style:italic;text-transform:none;letter-spacing:0;color:var(--ink-muted);cursor:help;}
+  .siga-info-icon:hover,.siga-info-icon:focus{border-color:var(--navy);color:var(--navy);outline:none;}
+  .siga-info-tooltip{visibility:hidden;opacity:0;position:absolute;z-index:80;top:22px;left:-8px;width:250px;padding:10px 12px;border-radius:4px;background:var(--navy);color:#fff;font-family:'Calibri',sans-serif;font-size:11.5px;font-weight:400;line-height:1.4;text-transform:none;letter-spacing:0;box-shadow:0 3px 12px rgba(0,0,0,.18);transition:opacity .12s ease;}
+  .siga-info-icon:hover .siga-info-tooltip,.siga-info-icon:focus .siga-info-tooltip{visibility:visible;opacity:1;}
+  .siga-source-badge{flex-shrink:0;padding:3px 6px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.06em;}
+  .siga-source-data{background:var(--navy-soft);color:var(--navy);}
+  .siga-source-calc{background:var(--amber-soft);color:var(--amber);}
+  .siga-section{margin-top:14px;}
+  .siga-section-heading{margin:0 0 10px 0;}
+  .siga-section-kicker{font-size:9px;font-weight:700;letter-spacing:.12em;color:var(--navy);}
+  .siga-section-heading h2{margin:3px 0;font-size:18px;color:var(--navy);}
+  .siga-section-heading p{margin:0;font-size:12px;color:var(--ink-muted);}
+  .siga-filter-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
+  .siga-year-field select{font-weight:700;border-color:var(--navy);}
+  .siga-content-disabled{opacity:.38;pointer-events:none;filter:grayscale(.25);}
+  .siga-upload-panel{margin:14px 0 0;padding:16px 18px;background:var(--surface);border:1px solid var(--line);border-radius:4px;}
+  .siga-upload-panel[hidden]{display:none!important;}
+  .siga-upload-year{max-width:180px;margin:10px 0 12px;}
+  .siga-upload-year input{width:100%;min-height:36px;padding:7px 9px;border:1px solid var(--line);border-radius:3px;font-family:'Calibri',sans-serif;}
+  .siga-upload-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(260px,1.4fr) auto;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line-soft);}
+  .siga-upload-row input[type=file]{min-width:0;padding:7px;border:1px solid var(--line);border-radius:3px;background:var(--bg);}
+  .siga-upload-row button{padding:9px 13px;border:1px solid var(--navy);border-radius:3px;background:var(--navy);color:#fff;font-family:'Calibri',sans-serif;font-weight:600;cursor:pointer;}
+  @media(max-width:950px){.siga-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.siga-filter-grid{grid-template-columns:repeat(2,minmax(0,1fr));}.siga-upload-row{grid-template-columns:1fr;}}
+  @media(max-width:560px){.siga-kpi-grid,.siga-filter-grid{grid-template-columns:1fr;}}
+</style>
