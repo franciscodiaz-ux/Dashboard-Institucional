@@ -19,6 +19,11 @@ var SIGA_RESULTADOS_CAMPOS = [
   'TIPO_EVALUACION','ESTADO_ENVIO'
 ];
 
+var SIGA_INSCRITOS_CAMPOS = [
+  'ANIO','SEMESTRE_CALENDARIO','PERIODO','ALUMNO_ID','ID_CURSO','SEDE','CARRERA',
+  'SEMESTRE_PLAN','NIVEL','JORNADA','ESTADO'
+];
+
 function sigaValidarPeriodo_(ano, semestreCalendario) {
   var anio = String(ano || '').trim();
   var sem = String(semestreCalendario || '').trim();
@@ -37,7 +42,7 @@ function sigaNombreArchivo_(tipo, ano, semestreCalendario) {
   var periodo = sigaValidarPeriodo_(ano, semestreCalendario);
   var clave = String(tipo || '').trim().toLowerCase();
 
-  if (clave !== 'siga_oferta' && clave !== 'siga_resultados') {
+  if (clave !== 'siga_oferta' && clave !== 'siga_resultados' && clave !== 'siga_inscritos') {
     throw new Error('Tipo de dataset SIGA no válido: ' + tipo);
   }
 
@@ -85,6 +90,10 @@ function sigaLeerCsvSiExiste_(nombre) {
 
 function procesarSigaOferta_(contenidoCSV) {
   return procesarSigaCsv_(contenidoCSV, SIGA_OFERTA_CAMPOS, 'siga_oferta');
+}
+
+function procesarSigaInscritos_(contenidoCSV) {
+  return procesarSigaCsv_(contenidoCSV, SIGA_INSCRITOS_CAMPOS, 'siga_inscritos');
 }
 
 function procesarSigaResultados_(contenidoCSV) {
@@ -158,7 +167,9 @@ function procesarSigaCsv_(contenidoCSV, campos, tipo) {
     });
 
     sigaValidarPeriodo_(registro.ANIO, registro.SEMESTRE_CALENDARIO);
-    if (!registro.PERIODO || !registro.ID_CURSO || !registro.SEDE || !registro.CARRERA || !registro.ASIGNATURA) {
+    var obligatorioComun = registro.PERIODO && registro.ID_CURSO && registro.SEDE && registro.CARRERA;
+    var obligatorioTipo = tipo === 'siga_inscritos' ? registro.ALUMNO_ID : registro.ASIGNATURA;
+    if (!obligatorioComun || !obligatorioTipo) {
       throw new Error('Fila ' + (indice + 2) + ': faltan campos obligatorios de identificación.');
     }
 
@@ -226,16 +237,19 @@ function procesarArchivoSigaXlsx(ano, semestreCalendario, base64, nombreOriginal
   var cursos = libro['CURSOS_ESI'];
   var pautas = libro['PAUTAS_ESI'];
   var publicacion = libro['PUBLICACION_SIGA'];
+  var estudiantes = libro['ESTUDIANTES_ESI'];
 
-  if (!cursos || !pautas || !publicacion) {
-    throw new Error('El XLSX no contiene las hojas CURSOS_ESI, PAUTAS_ESI y PUBLICACION_SIGA requeridas.');
+  if (!cursos || !pautas || !publicacion || !estudiantes) {
+    throw new Error('El XLSX no contiene las hojas CURSOS_ESI, PAUTAS_ESI, ESTUDIANTES_ESI y PUBLICACION_SIGA requeridas.');
   }
 
   sigaValidarPeriodoFuente_(cursos, periodo.periodo, 'CURSOS_ESI');
   sigaValidarPeriodoFuente_(publicacion, periodo.periodo, 'PUBLICACION_SIGA');
+  sigaValidarPeriodoFuente_(estudiantes, periodo.periodo, 'ESTUDIANTES_ESI');
 
   var oferta = sigaConstruirOfertaDesdeXlsx_(cursos, pautas, periodo);
   var resultados = sigaConstruirResultadosDesdeXlsx_(publicacion, periodo);
+  var inscritos = sigaConstruirInscritosDesdeXlsx_(estudiantes, cursos, periodo);
 
   var ofertaProcesada = procesarSigaOferta_(construirCSV_(
     SIGA_OFERTA_CAMPOS,
@@ -249,10 +263,18 @@ function procesarArchivoSigaXlsx(ano, semestreCalendario, base64, nombreOriginal
     ';'
   ));
 
+  var inscritosProcesados = procesarSigaInscritos_(construirCSV_(
+    SIGA_INSCRITOS_CAMPOS,
+    inscritos.map(function(r) { return SIGA_INSCRITOS_CAMPOS.map(function(c) { return r[c]; }); }),
+    ';'
+  ));
+
   var archivoOferta = sigaNombreArchivo_('siga_oferta', periodo.ano, periodo.semestre);
   var archivoResultados = sigaNombreArchivo_('siga_resultados', periodo.ano, periodo.semestre);
+  var archivoInscritos = sigaNombreArchivo_('siga_inscritos', periodo.ano, periodo.semestre);
   sigaGuardarCsv_(archivoOferta, ofertaProcesada.csv);
   sigaGuardarCsv_(archivoResultados, resultadosProcesados.csv);
+  sigaGuardarCsv_(archivoInscritos, inscritosProcesados.csv);
 
   return {
     ok: true,
@@ -262,7 +284,9 @@ function procesarArchivoSigaXlsx(ano, semestreCalendario, base64, nombreOriginal
     nombreOriginal: nombre,
     archivoOferta: archivoOferta,
     archivoResultados: archivoResultados,
-    ramosOfrecidos: ofertaProcesada.cantidadRegistros,
+    archivoInscritos: archivoInscritos,
+    ramosEvaluados: sigaContarRamosEvaluados_(ofertaProcesada.registros),
+    alumnosInscritos: sigaContarAlumnosInscritos_(inscritosProcesados.registros),
     registrosProcesados: resultadosProcesados.cantidadRegistros
   };
 }
@@ -324,6 +348,80 @@ function sigaConstruirOfertaDesdeXlsx_(cursos, pautas, periodo) {
   return salida;
 }
 
+
+function sigaConstruirInscritosDesdeXlsx_(estudiantes, cursos, periodo) {
+  var cursosPorId = {};
+  cursos.forEach(function(c) {
+    if (String(c.PERIODO || '').trim() !== periodo.periodo) return;
+    var id = String(c.ID_CURSO || '').trim();
+    if (id) cursosPorId[id] = c;
+  });
+
+  var ruts = {};
+  estudiantes.forEach(function(e) {
+    if (String(e.PERIODO || '').trim() !== periodo.periodo) return;
+    var rut = String(e.RUT || '').trim();
+    if (rut) ruts[rut] = true;
+  });
+  var listaRuts = Object.keys(ruts).sort();
+  var idAnonimo = {};
+  listaRuts.forEach(function(rut, i) {
+    idAnonimo[rut] = 'A' + ('0000' + (i + 1)).slice(-4);
+  });
+
+  var vistos = {};
+  var salida = [];
+  estudiantes.forEach(function(e) {
+    if (String(e.PERIODO || '').trim() !== periodo.periodo) return;
+    var rut = String(e.RUT || '').trim();
+    var idCurso = String(e.ID_CURSO || '').trim();
+    if (!rut || !idCurso || !cursosPorId[idCurso]) return;
+
+    var clave = rut + '|' + idCurso;
+    if (vistos[clave]) return;
+    vistos[clave] = true;
+
+    var c = cursosPorId[idCurso];
+    salida.push({
+      ANIO: periodo.ano,
+      SEMESTRE_CALENDARIO: periodo.semestre,
+      PERIODO: periodo.periodo,
+      ALUMNO_ID: idAnonimo[rut],
+      ID_CURSO: idCurso,
+      SEDE: String(c.SEDE || '').trim(),
+      CARRERA: String(c.CARRERA || '').trim(),
+      SEMESTRE_PLAN: String(parseInt(c.SEMESTRE, 10) || ''),
+      NIVEL: String(c.NIVEL || '').trim(),
+      JORNADA: String(c.JORNADA || '').trim(),
+      ESTADO: String(e.ESTADO || '').trim()
+    });
+  });
+  return salida;
+}
+
+function sigaContarRamosEvaluados_(registros) {
+  var vistos = {};
+  (registros || []).forEach(function(r) {
+    var clave = [
+      String(r.SEDE || '').trim().toUpperCase(),
+      String(r.CARRERA || '').trim().toUpperCase(),
+      String(r.JORNADA || '').trim().toUpperCase(),
+      String(r.ASIGNATURA || '').trim().toUpperCase()
+    ].join('|');
+    if (clave.replace(/\|/g, '')) vistos[clave] = true;
+  });
+  return Object.keys(vistos).length;
+}
+
+function sigaContarAlumnosInscritos_(registros) {
+  var vistos = {};
+  (registros || []).forEach(function(r) {
+    var id = String(r.ALUMNO_ID || '').trim();
+    if (id) vistos[id] = true;
+  });
+  return Object.keys(vistos).length;
+}
+
 function sigaConstruirResultadosDesdeXlsx_(publicacion, periodo) {
   return publicacion
     .filter(function(r) { return String(r.PERIODO || '').trim() === periodo.periodo; })
@@ -374,7 +472,7 @@ function sigaLeerXlsx_(blob) {
   var salida = {};
   sheetsEl.getChildren('sheet', ns).forEach(function(sheet) {
     var nombre = sheet.getAttribute('name').getValue();
-    if (['CURSOS_ESI','PAUTAS_ESI','PUBLICACION_SIGA'].indexOf(nombre) === -1) return;
+    if (['CURSOS_ESI','PAUTAS_ESI','ESTUDIANTES_ESI','PUBLICACION_SIGA'].indexOf(nombre) === -1) return;
 
     var rid = sheet.getAttribute('id', relNs).getValue();
     var target = relMap[rid];
@@ -465,7 +563,9 @@ function obtenerDatasetSiga(tipo, ano, semestreCalendario) {
   var contenido = sigaLeerCsv_(archivo);
   var resultado = clave === 'siga_oferta'
     ? procesarSigaOferta_(contenido)
-    : procesarSigaResultados_(contenido);
+    : clave === 'siga_inscritos'
+      ? procesarSigaInscritos_(contenido)
+      : procesarSigaResultados_(contenido);
 
   return {
     ok: true,
@@ -488,12 +588,12 @@ function obtenerPeriodosSiga() {
 
   while (files.hasNext()) {
     var nombre = files.next().getName();
-    var match = nombre.match(/^siga_(oferta|resultados)_(20\d{2})_([12])\.csv$/i);
+    var match = nombre.match(/^siga_(oferta|resultados|inscritos)_(20\d{2})_([12])\.csv$/i);
     if (!match) continue;
 
     var key = match[2] + '-' + match[3];
     estado[key] = estado[key] || {
-      ano: match[2], semestre: match[3], periodo: key, oferta: false, resultados: false
+      ano: match[2], semestre: match[3], periodo: key, oferta: false, resultados: false, inscritos: false
     };
     estado[key][match[1].toLowerCase()] = true;
   }

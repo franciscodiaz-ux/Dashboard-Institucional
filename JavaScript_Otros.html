@@ -3,7 +3,7 @@
 /** Resultados SIGA: visualización por año y semestre calendario. */
 
 window.sigaState = window.sigaState || {
-  ano:'', semestreCalendario:'', oferta:[], resultados:[], composicion:[]
+  ano:'', semestreCalendario:'', oferta:[], inscritos:[], resultados:[], composicion:[]
 };
 
 function renderResultadosSiga_(vista){
@@ -78,13 +78,23 @@ function sigaAplicacionHtml_(){
   return `<section class="siga-section">
     <div class="siga-section-heading"><div><div class="siga-section-kicker">APLICACIÓN SIGA</div><h2>Avance de aplicación</h2><p>Datos de cobertura y completitud del registro para el período seleccionado.</p></div></div>
     <section class="kpi-grid siga-kpi-grid">
-      ${sigaKpiHtml_('sigaKpiRamos','Cantidad de ramos ofrecidos','dato','Cantidad de registros del CSV de ramos ofrecidos para el período y filtros seleccionados.')}
-      ${sigaKpiHtml_('sigaKpiAlumnos','Alumnos cursando','dato','Suma de estudiantes de primer y segundo año desde Composición de matrícula para el año seleccionado.')}
-      ${sigaKpiHtml_('sigaKpiEsperados','Registros esperados','calculo','Estimación de registros esperados: en semestre calendario 1, primer año considera 5 ramos y segundo año 6; en semestre calendario 2, ambos años consideran 6 ramos.')}
+      ${sigaKpiHtml_('sigaKpiRamos','Ramos evaluados','dato','Cantidad de ramos distintos evaluados en SIGA. Un ramo corresponde a una combinación única de sede, carrera, jornada y asignatura.')}
+      ${sigaKpiHtml_('sigaKpiAlumnos','Alumnos inscritos en SIGA','dato','Cantidad de estudiantes distintos inscritos para rendir evaluaciones en el archivo SIGA cargado.')}
+      ${sigaKpiHtml_('sigaKpiEsperados','Registros esperados','calculo','Cálculo realizado sobre los alumnos inscritos en SIGA. En semestre calendario 1, los alumnos de primer año consideran 5 ramos y los demás 6. En semestre calendario 2, todos consideran 6 ramos.')}
       ${sigaKpiHtml_('sigaKpiProcesados','Registros procesados','dato','Cantidad efectiva de registros contenidos en el CSV de resultados SIGA para el período y filtros seleccionados.')}
     </section>
     <section class="charts-grid">
-      <article class="chart-card chart-card-wide"><div class="chart-title">Ramos ofrecidos por curso</div><div class="chart-subtitle">Cantidad de asignaturas incluidas en el instrumento según curso.</div><div id="sigaRamosCurso" class="bar-chart siga-bar-chart"></div></article>
+      <article class="chart-card chart-card-wide"><div class="chart-title">Ramos evaluados por curso</div><div class="chart-subtitle">Cantidad de asignaturas evaluadas según curso.</div><div id="sigaRamosCurso" class="bar-chart siga-bar-chart"></div></article>
+    </section>
+    <section class="siga-discrepancy" id="sigaDiscrepancy" hidden>
+      <div class="siga-discrepancy-header">
+        <div>
+          <div class="chart-title">Observaciones de consistencia</div>
+          <div class="chart-subtitle">Comparación entre estudiantes inscritos en SIGA y Composición de Matrícula.</div>
+        </div>
+        <button type="button" class="update-link" id="sigaDiscrepancyToggle">Ocultar</button>
+      </div>
+      <div id="sigaDiscrepancyBody"></div>
     </section>
   </section>`;
 }
@@ -158,6 +168,9 @@ function sigaConfigurarInterfaz_(esAplicacion){
 
   const subir=document.getElementById('sigaXlsxUploadBtn');
   if(subir) subir.addEventListener('click',sigaSubirXlsx_);
+
+  const discrepToggle=document.getElementById('sigaDiscrepancyToggle');
+  if(discrepToggle) discrepToggle.addEventListener('click',sigaToggleDiscrepancias_);
 }
 
 function sigaCargarPeriodos_(){
@@ -195,8 +208,8 @@ function sigaSeleccionarPeriodo_(){
   if(!ano||!sem){sigaOcultarContenido_('Seleccione año y semestre calendario.');return;}
 
   sigaSetEstado_(`Cargando SIGA ${ano}-${sem}...`);
-  window.sigaState.oferta=[]; window.sigaState.resultados=[]; window.sigaState.composicion=[];
-  let pendientes=3;
+  window.sigaState.oferta=[]; window.sigaState.inscritos=[]; window.sigaState.resultados=[]; window.sigaState.composicion=[];
+  let pendientes=4;
   let huboError=false;
   const fin=()=>{
     pendientes--;
@@ -210,6 +223,7 @@ function sigaSeleccionarPeriodo_(){
   };
 
   google.script.run.withSuccessHandler(r=>{window.sigaState.oferta=r.registros||[];fin();}).withFailureHandler(e=>{huboError=true;sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_oferta',ano,sem);
+  google.script.run.withSuccessHandler(r=>{window.sigaState.inscritos=r.registros||[];fin();}).withFailureHandler(e=>{huboError=true;sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_inscritos',ano,sem);
   google.script.run.withSuccessHandler(r=>{window.sigaState.resultados=r.registros||[];fin();}).withFailureHandler(e=>{huboError=true;sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_resultados',ano,sem);
   google.script.run.withSuccessHandler(r=>{window.sigaState.composicion=r.registros||[];fin();}).withFailureHandler(e=>{window.sigaState.composicion=[];console.warn(e);fin();}).obtenerDataset('composicion_matricula');
 }
@@ -227,7 +241,7 @@ function sigaMostrarContenido_(){
 }
 
 function sigaPrepararFiltros_(){
-  const base=[...(window.sigaState.oferta||[]),...(window.sigaState.resultados||[])];
+  const base=[...(window.sigaState.oferta||[]),...(window.sigaState.inscritos||[]),...(window.sigaState.resultados||[])];
   sigaLlenarSelect_('sigaSede',base.map(r=>r.SEDE),'Todas las sedes');
   sigaLlenarSelect_('sigaCarrera',base.map(r=>r.CARRERA),'Todas las carreras');
   sigaLlenarSelect_('sigaJornada',base.map(r=>r.JORNADA),'Todas las jornadas');
@@ -250,29 +264,109 @@ function sigaActualizarVista_(){
   if(!window.sigaState.ano||!window.sigaState.semestreCalendario)return;
   const f=sigaFiltros_();
   const oferta=(window.sigaState.oferta||[]).filter(r=>sigaCoincide_(r,f));
+  const inscritos=(window.sigaState.inscritos||[]).filter(r=>sigaCoincide_(r,f));
   const resultados=(window.sigaState.resultados||[]).filter(r=>sigaCoincide_(r,f));
-  sigaActualizarAplicacion_(oferta,resultados,f);
+  sigaActualizarAplicacion_(oferta,inscritos,resultados,f);
   sigaActualizarResultados_(resultados);
 }
 
-function sigaActualizarAplicacion_(oferta,resultados,f){
-  const ramos=oferta.length;
-  const comp=sigaComposicionSeleccion_(f);
-  const alumnos=comp.disponible?comp.primero+comp.segundo:null;
-  const esperados=comp.disponible?sigaCalcularEsperados_(comp.primero,comp.segundo):null;
+function sigaActualizarAplicacion_(oferta,inscritos,resultados,f){
+  const ramos=sigaContarRamosEvaluadosFront_(oferta);
+  const alumnos=sigaContarAlumnosInscritosFront_(inscritos);
+  const esperados=sigaCalcularEsperadosDesdeInscritos_(inscritos);
 
   asignarTexto_('sigaKpiRamos',formatearNumero_(ramos));
-  asignarTexto_('sigaKpiRamosNota',`${formatearNumero_(ramos)} registros de ramos ofrecidos`);
+  asignarTexto_('sigaKpiRamosNota',`${formatearNumero_(ramos)} combinaciones únicas sede + carrera + jornada + asignatura`);
 
-  asignarTexto_('sigaKpiAlumnos',alumnos===null?'—':formatearNumero_(alumnos));
-  asignarTexto_('sigaKpiAlumnosNota',alumnos===null?'Sin Composición de matrícula para el año seleccionado':`${formatearNumero_(comp.primero)} primer año + ${formatearNumero_(comp.segundo)} segundo año`);
+  asignarTexto_('sigaKpiAlumnos',formatearNumero_(alumnos));
+  asignarTexto_('sigaKpiAlumnosNota',`${formatearNumero_(alumnos)} estudiantes distintos inscritos en el archivo SIGA`);
 
-  asignarTexto_('sigaKpiEsperados',esperados===null?'—':formatearNumero_(esperados));
-  asignarTexto_('sigaKpiEsperadosNota',esperados===null?'Requiere Composición de matrícula':sigaFormulaEsperadosNota_(comp.primero,comp.segundo));
+  asignarTexto_('sigaKpiEsperados',formatearNumero_(esperados.total));
+  asignarTexto_('sigaKpiEsperadosNota',esperados.nota);
 
   asignarTexto_('sigaKpiProcesados',formatearNumero_(resultados.length));
   asignarTexto_('sigaKpiProcesadosNota','Registros efectivamente procesados desde SIGA');
+
   sigaDibujarRamosCurso_(oferta);
+  sigaActualizarDiscrepancias_(alumnos,f);
+}
+
+function sigaContarRamosEvaluadosFront_(rows){
+  const vistos=new Set();
+  (rows||[]).forEach(r=>{
+    const clave=[r.SEDE,r.CARRERA,r.JORNADA,r.ASIGNATURA].map(sigaNorm_).join('|');
+    if(clave.replace(/\|/g,'')) vistos.add(clave);
+  });
+  return vistos.size;
+}
+
+function sigaContarAlumnosInscritosFront_(rows){
+  return new Set((rows||[]).map(r=>String(r.ALUMNO_ID||'').trim()).filter(Boolean)).size;
+}
+
+function sigaCalcularEsperadosDesdeInscritos_(rows){
+  const porAlumno={};
+  (rows||[]).forEach(r=>{
+    const id=String(r.ALUMNO_ID||'').trim();
+    if(!id)return;
+    const semPlan=Number(r.SEMESTRE_PLAN)||0;
+    if(!porAlumno[id]) porAlumno[id]={primerAno:true};
+    if(semPlan>=3) porAlumno[id].primerAno=false;
+  });
+
+  const totalAlumnos=Object.keys(porAlumno).length;
+  const sem=String(window.sigaState.semestreCalendario||'');
+  if(sem==='2'){
+    return {
+      total:totalAlumnos*6,
+      nota:`${formatearNumero_(totalAlumnos)} alumnos × 6 ramos`
+    };
+  }
+
+  let primero=0,otros=0;
+  Object.values(porAlumno).forEach(x=>x.primerAno?primero++:otros++);
+  return {
+    total:primero*5+otros*6,
+    nota:`${formatearNumero_(primero)} de primer año × 5 + ${formatearNumero_(otros)} restantes × 6`
+  };
+}
+
+function sigaActualizarDiscrepancias_(alumnosSiga,f){
+  const panel=document.getElementById('sigaDiscrepancy');
+  const body=document.getElementById('sigaDiscrepancyBody');
+  const toggle=document.getElementById('sigaDiscrepancyToggle');
+  if(!panel||!body)return;
+
+  const comp=sigaComposicionSeleccion_(f);
+  if(!comp.disponible){
+    panel.hidden=true;
+    return;
+  }
+
+  const alumnosMatricula=comp.primero+comp.segundo;
+  const diferencia=alumnosSiga-alumnosMatricula;
+  if(diferencia===0){
+    panel.hidden=true;
+    return;
+  }
+
+  panel.hidden=false;
+  body.hidden=false;
+  if(toggle) toggle.textContent='Ocultar';
+  const signo=diferencia>0?'+':'';
+  body.innerHTML=`
+    <div class="siga-discrepancy-item">
+      <strong>Diferencia en estudiantes inscritos</strong>
+      <span>SIGA registra ${formatearNumero_(alumnosSiga)} estudiantes distintos y Composición de Matrícula registra ${formatearNumero_(alumnosMatricula)} estudiantes de primer y segundo año para la misma selección. Diferencia: ${signo}${formatearNumero_(diferencia)}.</span>
+    </div>`;
+}
+
+function sigaToggleDiscrepancias_(){
+  const body=document.getElementById('sigaDiscrepancyBody');
+  const toggle=document.getElementById('sigaDiscrepancyToggle');
+  if(!body||!toggle)return;
+  body.hidden=!body.hidden;
+  toggle.textContent=body.hidden?'Mostrar':'Ocultar';
 }
 
 function sigaComposicionSeleccion_(f){
@@ -286,17 +380,6 @@ function sigaComposicionSeleccion_(f){
   },{disponible:true,primero:0,segundo:0});
 }
 
-function sigaCalcularEsperados_(primero,segundo){
-  const sem=String(window.sigaState.semestreCalendario||'');
-  return sem==='1' ? primero*5 + segundo*6 : primero*6 + segundo*6;
-}
-
-function sigaFormulaEsperadosNota_(primero,segundo){
-  const sem=String(window.sigaState.semestreCalendario||'');
-  return sem==='1'
-    ? `${formatearNumero_(primero)} × 5 + ${formatearNumero_(segundo)} × 6`
-    : `${formatearNumero_(primero)} × 6 + ${formatearNumero_(segundo)} × 6`;
-}
 
 function sigaActualizarResultados_(rows){
   const total=rows.length; let aprob=0,reprob=0,pend=0,suma=0,nNotas=0;
@@ -337,7 +420,7 @@ function sigaSubirXlsx_(){
     const base64=dataUrl.includes(',')?dataUrl.split(',')[1]:'';
     google.script.run
       .withSuccessHandler(r=>{
-        if(estado)estado.textContent=`Proceso correcto: ${r.ramosOfrecidos.toLocaleString('es-CL')} ramos y ${r.registrosProcesados.toLocaleString('es-CL')} registros SIGA para ${r.periodo}.`;
+        if(estado)estado.textContent=`Proceso correcto: ${r.ramosEvaluados.toLocaleString('es-CL')} ramos evaluados, ${r.alumnosInscritos.toLocaleString('es-CL')} alumnos inscritos y ${r.registrosProcesados.toLocaleString('es-CL')} registros procesados para ${r.periodo}.`;
         input.value='';
         sigaCargarPeriodos_();
         setTimeout(()=>{
