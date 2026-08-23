@@ -33,6 +33,17 @@
 .pm-primary-btn:disabled{opacity:.55;cursor:not-allowed}
 .pm-follow-message{font-size:12px;color:var(--ink-muted)}
 .pm-evidence-link{color:var(--navy);font-weight:600}
+.pm-secondary-btn{border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink);padding:8px 13px;font-family:Calibri,sans-serif;font-size:12.5px;font-weight:600;cursor:pointer}
+.pm-secondary-btn:hover{background:var(--navy-soft)}
+.pm-modal-backdrop{position:fixed;inset:0;z-index:10000;background:rgba(15,31,48,.48);display:flex;align-items:center;justify-content:center;padding:24px}
+.pm-modal{width:min(920px,96vw);max-height:90vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:6px;box-shadow:0 18px 50px rgba(0,0,0,.28)}
+.pm-modal-head{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
+.pm-modal-title{font-size:16px;font-weight:700;color:var(--navy)}
+.pm-modal-close{width:34px;height:34px;border:0;border-radius:3px;background:transparent;color:var(--ink-muted);font-size:24px;line-height:1;cursor:pointer}
+.pm-modal-close:hover{background:var(--navy-soft);color:var(--navy)}
+.pm-modal-body{padding:0 18px 18px}
+.pm-modal .pm-detail{margin-top:0;border:0;padding:18px 0 0}
+body.pm-modal-open{overflow:hidden}
 
 .pm-timeline{display:grid;grid-template-columns:240px repeat(20,minmax(28px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);overflow:auto;margin-top:14px}
 .pm-timeline>div{background:var(--surface);padding:6px;font-size:10px;min-height:28px}
@@ -482,8 +493,7 @@
           }).join('') +
         '</tbody>' +
       '</table>' +
-    '</div>' +
-    '<div id="pmDetalle"></div>';
+    '</div>';
   }
 
   function enlazarActividades_(){
@@ -558,86 +568,109 @@
 
   function abrirSeguimiento_(id){
     var registro = buscarRegistro_(id);
-    var detalle = document.getElementById('pmDetalle');
+    if (!registro) return;
 
-    if (!registro || !detalle) return;
+    cerrarSeguimientoModal_();
 
     var evidenciaActual = registro.URL_EVIDENCIA || '';
+    var overlay = document.createElement('div');
 
-    detalle.innerHTML =
-      '<div class="pm-detail">' +
-        '<h3>' +
-          escapeHtml_(registro.ID) +
-          ' · ' +
-          escapeHtml_(registro.CRITERIO) +
-        '</h3>' +
-        '<div class="pm-detail-grid">' +
-          datoDetalle_('Dimensión', registro.DIMENSION) +
-          datoDetalle_('Actividad', registro.ACTIVIDAD) +
-          datoDetalle_('Propósito', registro.PROPOSITO) +
-          datoDetalle_(
-            'Período',
-            registro.FECHA_INICIO + ' → ' + registro.FECHA_TERMINO
-          ) +
-          datoDetalle_('Meta', registro.META) +
-          (registro.INDICADOR ? datoDetalle_('Indicador', registro.INDICADOR) : '') +
-          datoDetalle_('Criterio de logro', registro.CRITERIO_LOGRO) +
-          datoDetalle_('Evidencia esperada', registro.EVIDENCIA) +
-          datoDetalle_('Recursos', registro.RECURSOS) +
-          datoDetalle_('Responsables', registro.RESPONSABLES) +
-          datoDetalle_(
-            'Última actualización',
-            registro.FECHA_ACTUALIZACION || 'Sin seguimiento'
-          ) +
-          (
-            evidenciaActual
-              ? '<div class="pm-detail-label">Evidencia registrada</div>' +
-                '<div><a class="pm-evidence-link" target="_blank" href="' +
+    overlay.id = 'pmSeguimientoModal';
+    overlay.className = 'pm-modal-backdrop';
+    overlay.setAttribute('role', 'presentation');
+
+    overlay.innerHTML =
+      '<section class="pm-modal" role="dialog" aria-modal="true" ' +
+        'aria-labelledby="pmModalTitulo">' +
+        '<div class="pm-modal-head">' +
+          '<div class="pm-modal-title" id="pmModalTitulo">' +
+            'Seguimiento · ' + escapeHtml_(registro.ID) +
+          '</div>' +
+          '<button type="button" class="pm-modal-close" ' +
+            'id="pmCerrarSeguimiento" aria-label="Cerrar">×</button>' +
+        '</div>' +
+        '<div class="pm-modal-body">' +
+          '<div class="pm-detail">' +
+            '<h3>' +
+              escapeHtml_(registro.ID) +
+              ' · ' +
+              escapeHtml_(registro.CRITERIO) +
+            '</h3>' +
+            '<div class="pm-detail-grid">' +
+              datoDetalle_('Dimensión', registro.DIMENSION) +
+              datoDetalle_('Actividad', registro.ACTIVIDAD) +
+              datoDetalle_('Propósito', registro.PROPOSITO) +
+              datoDetalle_(
+                'Período',
+                registro.FECHA_INICIO + ' → ' + registro.FECHA_TERMINO
+              ) +
+              datoDetalle_('Meta', registro.META) +
+              (registro.INDICADOR ? datoDetalle_('Indicador', registro.INDICADOR) : '') +
+              datoDetalle_('Criterio de logro', registro.CRITERIO_LOGRO) +
+              datoDetalle_('Evidencia esperada', registro.EVIDENCIA) +
+              datoDetalle_('Recursos', registro.RECURSOS) +
+              datoDetalle_('Responsables', registro.RESPONSABLES) +
+              datoDetalle_(
+                'Última actualización',
+                registro.FECHA_ACTUALIZACION || 'Sin seguimiento'
+              ) +
+              (
+                evidenciaActual
+                  ? '<div class="pm-detail-label">Evidencia registrada</div>' +
+                    '<div><a class="pm-evidence-link" target="_blank" href="' +
+                      escapeHtml_(evidenciaActual) +
+                      '">Ver evidencia</a></div>'
+                  : ''
+              ) +
+            '</div>' +
+
+            '<div class="pm-follow-form">' +
+              '<div class="pm-follow-form-grid">' +
+                '<label class="pm-detail-label" for="pmSeguimientoEstado">' +
+                  'Estado' +
+                '</label>' +
+                '<select id="pmSeguimientoEstado">' +
+                  opcionesEstado_(registro.ESTADO || '') +
+                '</select>' +
+
+                '<label class="pm-detail-label" for="pmSeguimientoAvance">' +
+                  'Avance (%)' +
+                '</label>' +
+                '<input id="pmSeguimientoAvance" type="number" min="0" max="100" step="1" value="' +
+                  escapeHtml_(registro.AVANCE || '') +
+                '">' +
+
+                '<label class="pm-detail-label" for="pmSeguimientoObservacion">' +
+                  'Observación' +
+                '</label>' +
+                '<textarea id="pmSeguimientoObservacion">' +
+                  escapeHtml_(registro.OBSERVACION || '') +
+                '</textarea>' +
+
+                '<label class="pm-detail-label" for="pmSeguimientoUrl">' +
+                  'URL de evidencia' +
+                '</label>' +
+                '<input id="pmSeguimientoUrl" type="url" value="' +
                   escapeHtml_(evidenciaActual) +
-                  '">Ver evidencia</a></div>'
-              : ''
-          ) +
-        '</div>' +
+                  '" placeholder="https://drive.google.com/...">' +
+              '</div>' +
 
-        '<div class="pm-follow-form">' +
-          '<div class="pm-follow-form-grid">' +
-            '<label class="pm-detail-label" for="pmSeguimientoEstado">' +
-              'Estado' +
-            '</label>' +
-            '<select id="pmSeguimientoEstado">' +
-              opcionesEstado_(registro.ESTADO || '') +
-            '</select>' +
-
-            '<label class="pm-detail-label" for="pmSeguimientoAvance">' +
-              'Avance (%)' +
-            '</label>' +
-            '<input id="pmSeguimientoAvance" type="number" min="0" max="100" step="1" value="' +
-              escapeHtml_(registro.AVANCE || '') +
-            '">' +
-
-            '<label class="pm-detail-label" for="pmSeguimientoObservacion">' +
-              'Observación' +
-            '</label>' +
-            '<textarea id="pmSeguimientoObservacion">' +
-              escapeHtml_(registro.OBSERVACION || '') +
-            '</textarea>' +
-
-            '<label class="pm-detail-label" for="pmSeguimientoUrl">' +
-              'URL de evidencia' +
-            '</label>' +
-            '<input id="pmSeguimientoUrl" type="url" value="' +
-              escapeHtml_(evidenciaActual) +
-              '" placeholder="https://drive.google.com/...">' +
-          '</div>' +
-
-          '<div class="pm-follow-actions">' +
-            '<button type="button" class="pm-primary-btn" id="pmGuardarSeguimiento">' +
-              'Guardar seguimiento' +
-            '</button>' +
-            '<span class="pm-follow-message" id="pmSeguimientoMensaje"></span>' +
+              '<div class="pm-follow-actions">' +
+                '<button type="button" class="pm-primary-btn" id="pmGuardarSeguimiento">' +
+                  'Guardar seguimiento' +
+                '</button>' +
+                '<button type="button" class="pm-secondary-btn" id="pmVolverSeguimiento">' +
+                  'Volver' +
+                '</button>' +
+                '<span class="pm-follow-message" id="pmSeguimientoMensaje"></span>' +
+              '</div>' +
+            '</div>' +
           '</div>' +
         '</div>' +
-      '</div>';
+      '</section>';
+
+    document.body.appendChild(overlay);
+    document.body.classList.add('pm-modal-open');
 
     document
       .getElementById('pmGuardarSeguimiento')
@@ -645,10 +678,31 @@
         guardarSeguimientoCompleto_(id);
       });
 
-    detalle.scrollIntoView({
-      behavior:'smooth',
-      block:'nearest'
+    document
+      .getElementById('pmCerrarSeguimiento')
+      .addEventListener('click', cerrarSeguimientoModal_);
+
+    document
+      .getElementById('pmVolverSeguimiento')
+      .addEventListener('click', cerrarSeguimientoModal_);
+
+    overlay.addEventListener('click', function(evento){
+      if (evento.target === overlay) cerrarSeguimientoModal_();
     });
+
+    document.addEventListener('keydown', cerrarSeguimientoConEscape_);
+  }
+
+  function cerrarSeguimientoConEscape_(evento){
+    if (evento.key === 'Escape') cerrarSeguimientoModal_();
+  }
+
+  function cerrarSeguimientoModal_(){
+    var overlay = document.getElementById('pmSeguimientoModal');
+
+    if (overlay) overlay.remove();
+    document.body.classList.remove('pm-modal-open');
+    document.removeEventListener('keydown', cerrarSeguimientoConEscape_);
   }
 
   function datoDetalle_(label, valor){

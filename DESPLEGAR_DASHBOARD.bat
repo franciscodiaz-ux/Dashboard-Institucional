@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "COMMIT_MSG=Actualiza Plan de Mejora 2026-2027, identificacion dev/produccion, diferencias de composicion de matricula y recuperacion automatica de sesion clasp"
+set "COMMIT_MSG=Corrige deteccion dev-produccion y convierte seguimiento del Plan de Mejora a modal"
 
 echo ============================================
 echo   CFT Laplace - Despliegue Dashboard
