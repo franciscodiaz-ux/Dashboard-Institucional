@@ -58,13 +58,6 @@
 
 <div id="tabContent"></div>
 
-<script>
-  // Valores calculados por doGet(). No intentar inferir /dev desde window.location:
-  // HtmlService ejecuta el frontend dentro de un iframe de Google.
-  window.DASHBOARD_ENV = <?!= JSON.stringify(dashboardEnvironment) ?>;
-  window.DASHBOARD_VERSION = <?!= JSON.stringify(dashboardVersion) ?>;
-</script>
-
 <?!= include('JavaScript'); ?>
 <?!= include('JavaScript_Academicos'); ?>
 <?!= include('JavaScript_Administrativos'); ?>

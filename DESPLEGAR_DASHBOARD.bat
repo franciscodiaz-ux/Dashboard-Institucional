@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "COMMIT_MSG=Corrige deteccion dev-produccion y convierte seguimiento del Plan de Mejora a modal"
+set "COMMIT_MSG=Prueba temporal: revierte deteccion de entorno para diagnosticar acceso dev"
 
 echo ============================================
 echo   CFT Laplace - Despliegue Dashboard

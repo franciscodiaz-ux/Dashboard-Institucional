@@ -7,33 +7,9 @@
 
 var FOLDER_ID = '1x6HcDdtrVkEJj9z3z6m3jIUxSwuHEmem';
 
-// Identificación del dashboard. La versión solo se muestra en producción.
-var DASHBOARD_VERSION = '2026.08.22';
-
-// El deployment HEAD de Apps Script es estable y corresponde a /dev.
-// Se usa porque el frontend de HtmlService se ejecuta dentro de un iframe
-// y window.location no conserva la URL /dev o /exec visible en el navegador.
-var DASHBOARD_DEV_DEPLOYMENT_ID =
-  'AKfycby7Rw8ZTzupdZzvw1UTHhAiYq5CQbYFIZMrSsUQeZb1';
-
-function doGet(e) {
-  var template = HtmlService.createTemplateFromFile('Index');
-  var serviceUrl = '';
-
-  try {
-    serviceUrl = String(ScriptApp.getService().getUrl() || '');
-  } catch (error) {
-    serviceUrl = '';
-  }
-
-  var esDev =
-    /\/dev(?:[?#]|$)/i.test(serviceUrl) ||
-    serviceUrl.indexOf(DASHBOARD_DEV_DEPLOYMENT_ID) !== -1;
-
-  template.dashboardEnvironment = esDev ? 'dev' : 'prod';
-  template.dashboardVersion = DASHBOARD_VERSION;
-
-  return template
+function doGet() {
+  return HtmlService
+    .createTemplateFromFile('Index')
     .evaluate()
     .setTitle('CFT Laplace — Dashboard Institucional')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
