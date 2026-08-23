@@ -67,6 +67,7 @@ function renderResultadosSiga_(vista){
         ${esAplicacion?sigaAplicacionHtml_():sigaResultadosHtml_()}
       </section>
 
+      <div class="siga-detail-overlay" id="sigaRamosDetalleOverlay" hidden><section class="siga-detail-modal" role="dialog" aria-modal="true" aria-labelledby="sigaRamosDetalleTitulo"><header class="siga-detail-modal-header"><div><div class="siga-section-kicker">DETALLE SIGA</div><h3 id="sigaRamosDetalleTitulo">Ramos evaluados</h3><div class="chart-subtitle" id="sigaRamosDetalleSubtitulo"></div></div><button type="button" class="siga-detail-close" id="sigaRamosDetalleCerrar" aria-label="Cerrar">×</button></header><div class="siga-detail-modal-body" id="sigaRamosDetalleBody"></div></section></div>
       <div class="dataset-status" id="sigaEstado">Seleccione año y semestre calendario.</div>
     </main>`;
 
@@ -83,8 +84,12 @@ function sigaAplicacionHtml_(){
       ${sigaKpiHtml_('sigaKpiEsperados','Registros esperados','calculo','Cálculo realizado sobre los alumnos inscritos en SIGA. En semestre calendario 1, los alumnos de primer año consideran 5 ramos y los demás 6. En semestre calendario 2, todos consideran 6 ramos.')}
       ${sigaKpiHtml_('sigaKpiProcesados','Registros procesados','dato','Cantidad efectiva de registros contenidos en el CSV de resultados SIGA para el período y filtros seleccionados.')}
     </section>
-    <section class="charts-grid">
-      <article class="chart-card chart-card-wide"><div class="chart-title">Ramos evaluados por curso</div><div class="chart-subtitle">Cantidad de asignaturas evaluadas según curso.</div><div id="sigaRamosCurso" class="bar-chart siga-bar-chart"></div></article>
+    <section class="charts-grid siga-charts-implementacion">
+      <article class="chart-card chart-card-wide siga-ramos-card">
+        <div class="chart-title">Ramos evaluados por curso</div>
+        <div class="chart-subtitle">Cantidad de ramos evaluados. Haga clic en el número para ver el detalle.</div>
+        <div id="sigaRamosCurso" class="siga-ramos-table-wrap"></div>
+      </article>
     </section>
     <section class="siga-discrepancy" id="sigaDiscrepancy" hidden>
       <div class="siga-discrepancy-header">
@@ -168,6 +173,10 @@ function sigaConfigurarInterfaz_(esAplicacion){
 
   const subir=document.getElementById('sigaXlsxUploadBtn');
   if(subir) subir.addEventListener('click',sigaSubirXlsx_);
+  const cerrarDetalle=document.getElementById('sigaRamosDetalleCerrar');
+  const overlayDetalle=document.getElementById('sigaRamosDetalleOverlay');
+  if(cerrarDetalle) cerrarDetalle.addEventListener('click',sigaCerrarDetalleRamos_);
+  if(overlayDetalle) overlayDetalle.addEventListener('click',e=>{if(e.target===overlayDetalle)sigaCerrarDetalleRamos_();});
 
   const discrepToggle=document.getElementById('sigaDiscrepancyToggle');
   if(discrepToggle) discrepToggle.addEventListener('click',sigaToggleDiscrepancias_);
@@ -396,7 +405,9 @@ function sigaActualizarResultados_(rows){
 function sigaNumeroFront_(v){const t=String(v??'').trim().replace(',','.');if(!t)return null;const n=Number(t);return Number.isFinite(n)?n:null;}
 function sigaEtiquetaCorta_(t){return String(t||'').replace(/^TÉCNICO DE NIVEL SUPERIOR EN /i,'').replace(/^Técnico de Nivel Superior en /i,'').replace(/^TÉCNICO DE NIVEL SUPERIOR /i,'').replace(/^Técnico de Nivel Superior /i,'');}
 function sigaNombreCursoRegistro_(r){return [sigaEtiquetaCorta_(r.CARRERA),r.SEMESTRE_PLAN?`Sem. ${r.SEMESTRE_PLAN}`:'',r.JORNADA,r.SEDE].filter(Boolean).join(' · ');}
-function sigaDibujarRamosCurso_(rows){const m={};rows.forEach(r=>{const k=r.ID_CURSO||sigaNombreCursoRegistro_(r);if(!m[k])m[k]={r:r,n:0};m[k].n++;});const d=Object.values(m).map(x=>({etiqueta:sigaNombreCursoRegistro_(x.r),valor:x.n})).sort((a,b)=>b.valor-a.valor);dibujarBarras_('sigaRamosCurso',d,30);}
+function sigaDibujarRamosCurso_(rows){const cont=document.getElementById('sigaRamosCurso');if(!cont)return;const m={};(rows||[]).forEach(r=>{const k=r.ID_CURSO||sigaNombreCursoRegistro_(r);if(!m[k])m[k]={r:r,ramos:new Set()};m[k].ramos.add(sigaNorm_(r.ASIGNATURA));});const d=Object.entries(m).map(([id,x])=>({id,etiqueta:sigaNombreCursoRegistro_(x.r),valor:x.ramos.size})).sort((a,b)=>a.etiqueta.localeCompare(b.etiqueta,'es'));if(!d.length){cont.innerHTML='<div class="chart-empty">No hay datos para la selección actual.</div>';return;}cont.innerHTML=`<table class="siga-ramos-table"><thead><tr><th>Curso</th><th>Ramos evaluados</th></tr></thead><tbody>${d.map(x=>`<tr><td>${escapeHtml_(x.etiqueta)}</td><td class="siga-ramos-count-cell"><button type="button" class="siga-ramos-count-link" data-siga-curso="${escapeHtml_(x.id)}">${formatearNumero_(x.valor)}</button></td></tr>`).join('')}</tbody></table>`;cont.querySelectorAll('.siga-ramos-count-link').forEach(btn=>btn.addEventListener('click',()=>sigaAbrirDetalleRamos_(btn.dataset.sigaCurso)));}
+function sigaAbrirDetalleRamos_(idCurso){const overlay=document.getElementById('sigaRamosDetalleOverlay'),titulo=document.getElementById('sigaRamosDetalleTitulo'),subtitulo=document.getElementById('sigaRamosDetalleSubtitulo'),body=document.getElementById('sigaRamosDetalleBody');if(!overlay||!titulo||!body)return;const f=sigaFiltros_();const oferta=(window.sigaState.oferta||[]).filter(r=>sigaCoincide_(r,f)&&String(r.ID_CURSO||sigaNombreCursoRegistro_(r))===String(idCurso));const inscritos=(window.sigaState.inscritos||[]).filter(r=>sigaCoincide_(r,f)&&String(r.ID_CURSO||sigaNombreCursoRegistro_(r))===String(idCurso));const ref=oferta[0]||inscritos[0]||null,curso=ref?sigaNombreCursoRegistro_(ref):String(idCurso||'');const alumnos=new Set(inscritos.map(r=>String(r.ALUMNO_ID||'').trim()).filter(Boolean)).size;const ramos=[...new Set(oferta.map(r=>String(r.ASIGNATURA||'').trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'es'));titulo.textContent='Ramos evaluados';if(subtitulo)subtitulo.textContent=curso;body.innerHTML=ramos.length?`<div class="siga-modal-summary">${formatearNumero_(ramos.length)} ramos evaluados · ${formatearNumero_(alumnos)} alumnos inscritos en el curso</div><div class="siga-modal-table-wrap"><table class="siga-modal-table"><thead><tr><th>Ramo</th><th>Alumnos</th></tr></thead><tbody>${ramos.map(r=>`<tr><td>${escapeHtml_(r)}</td><td>${formatearNumero_(alumnos)}</td></tr>`).join('')}</tbody></table></div>`:'<div class="chart-empty">No hay ramos disponibles para este curso.</div>';overlay.hidden=false;}
+function sigaCerrarDetalleRamos_(){const overlay=document.getElementById('sigaRamosDetalleOverlay');if(overlay)overlay.hidden=true;}
 function sigaDibujarPromedio_(id,rows,campo){const m={};rows.forEach(r=>{const n=sigaNumeroFront_(r.PROMEDIO_FINAL);if(n===null||String(r.SITUACION||'').toUpperCase()==='PENDIENTE')return;const k=r[campo]||'Sin información';m[k]=m[k]||{s:0,n:0};m[k].s+=n;m[k].n++;});const d=Object.entries(m).map(([k,v])=>({etiqueta:sigaEtiquetaCorta_(k),valor:v.n?v.s/v.n:0})).sort((a,b)=>b.valor-a.valor);sigaDibujarBarrasNota_(id,d);}
 function sigaDibujarBarrasNota_(id,datos){const c=document.getElementById(id);if(!c)return;if(!datos.length){c.innerHTML='<div class="chart-empty">No hay datos para la selección actual.</div>';return;}c.innerHTML=datos.map(d=>{const w=Math.max(2,Math.min(100,d.valor/7*100));return `<div class="bar-row"><div class="bar-label" title="${escapeHtml_(d.etiqueta)}">${escapeHtml_(d.etiqueta)}</div><div class="bar-track"><div class="bar-fill" style="width:${w.toFixed(1)}%"></div></div><div class="bar-value">${d.valor.toFixed(1).replace('.',',')}</div></div>`;}).join('');}
 

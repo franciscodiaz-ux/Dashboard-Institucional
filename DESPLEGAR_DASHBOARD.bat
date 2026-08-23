@@ -51,7 +51,7 @@ if errorlevel 1 goto :error
 
 echo.
 echo [4/5] Creando commit...
-git commit -m "Ajusta Aplicacion SIGA: ramos, alumnos y registros esperados"
+git commit -m "Compacta tabla de ramos SIGA y agrega detalle modal"
 if errorlevel 1 (
     echo.
     echo No se creo un commit nuevo.
