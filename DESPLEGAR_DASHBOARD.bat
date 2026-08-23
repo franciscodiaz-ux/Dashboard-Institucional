@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "COMMIT_MSG=Prueba temporal: revierte deteccion de entorno para diagnosticar acceso dev"
+set "COMMIT_MSG=Restaura deteccion dev-produccion para probar comportamiento de clasp"
 
 echo ============================================
 echo   CFT Laplace - Despliegue Dashboard

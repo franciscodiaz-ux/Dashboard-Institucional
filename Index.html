@@ -58,6 +58,12 @@
 
 <div id="tabContent"></div>
 
+<!-- Variables inyectadas desde doGet() para identificar el entorno. -->
+<script>
+  window.DASHBOARD_ENV = '<?= dashboardEnvironment ?>';
+  window.DASHBOARD_VERSION = '<?= dashboardVersion ?>';
+</script>
+
 <?!= include('JavaScript'); ?>
 <?!= include('JavaScript_Academicos'); ?>
 <?!= include('JavaScript_Administrativos'); ?>
