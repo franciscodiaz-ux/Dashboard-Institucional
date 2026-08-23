@@ -1,9 +1,9 @@
 <script>
 
-/** Resultados SIGA: visualización anual basada en CSV normalizados. */
+/** Resultados SIGA: visualización por año y semestre calendario. */
 
 window.sigaState = window.sigaState || {
-  ano:'', oferta:[], resultados:[], composicion:[], cargando:false
+  ano:'', semestreCalendario:'', oferta:[], resultados:[], composicion:[]
 };
 
 function renderResultadosSiga_(vista){
@@ -17,48 +17,71 @@ function renderResultadosSiga_(vista){
           <div class="dataset-view-title-row">
             <div class="dataset-view-title">${esAplicacion?'Aplicación SIGA':'Resultados académicos'}</div>
             <button type="button" class="download-link" id="sigaDescargarBtn" disabled>Descargar CSV</button>
-            <button type="button" class="update-link" id="sigaActualizarBtn">↻ Actualizar registros</button>
+            <button type="button" class="update-link" id="sigaActualizarBtn">↻ Cargar archivo SIGA</button>
           </div>
           <div class="dataset-view-subtitle">
             ${esAplicacion
-              ? 'Cobertura esperada y registros disponibles para la aplicación del instrumento.'
-              : 'Indicadores de desempeño académico consolidados una vez aplicado el instrumento.'}
+              ? 'Cobertura y completitud de la aplicación SIGA para un período calendario específico.'
+              : 'Indicadores académicos calculados desde los registros SIGA del período seleccionado.'}
           </div>
         </div>
       </div>
 
-      <section class="filter-panel siga-year-panel">
-        <div class="filter-panel-title">Seleccione el año antes de cargar resultados</div>
-        <div class="filter-grid siga-filter-grid">
-          <label class="filter-field siga-year-field"><span>Año</span><select id="sigaAno"><option value="">Seleccione un año</option></select></label>
-          <label class="filter-field"><span>Sede</span><select id="sigaSede" disabled><option value="">Todas</option></select></label>
-          <label class="filter-field"><span>Carrera</span><select id="sigaCarrera" disabled><option value="">Todas</option></select></label>
-          <label class="filter-field"><span>Jornada</span><select id="sigaJornada" disabled><option value="">Todas</option></select></label>
-          <label class="filter-field"><span>Semestre</span><select id="sigaSemestre" disabled><option value="">Todos</option></select></label>
+      <section class="filter-panel siga-period-panel">
+        <div class="filter-panel-title">Período SIGA</div>
+        <div class="filter-panel-help siga-period-help">
+          Seleccione obligatoriamente el año calendario y el semestre calendario. No se muestran datos mientras el período no esté completo.
+        </div>
+        <div class="filter-grid siga-period-grid">
+          <label class="filter-field siga-year-field">
+            <span>Año calendario</span>
+            <select id="sigaAno"><option value="">Seleccione año</option></select>
+          </label>
+          <label class="filter-field siga-year-field">
+            <span>Semestre calendario</span>
+            <select id="sigaSemestreCalendario" disabled>
+              <option value="">Seleccione semestre</option>
+              <option value="1">Semestre 1</option>
+              <option value="2">Semestre 2</option>
+            </select>
+          </label>
         </div>
       </section>
 
       ${sigaUploadPanelHtml_()}
 
-      <section id="sigaContenido" class="siga-content-disabled">
+      <section id="sigaPeriodoPendiente" class="category-empty siga-period-empty">
+        Seleccione año y semestre calendario para visualizar los datos SIGA.
+      </section>
+
+      <section id="sigaContenido" hidden>
+        <section class="filter-panel siga-secondary-filters">
+          <div class="filter-panel-title">Filtros de visualización</div>
+          <div class="filter-grid siga-secondary-grid">
+            <label class="filter-field"><span>Sede</span><select id="sigaSede" disabled><option value="">Todas</option></select></label>
+            <label class="filter-field"><span>Carrera</span><select id="sigaCarrera" disabled><option value="">Todas</option></select></label>
+            <label class="filter-field"><span>Jornada</span><select id="sigaJornada" disabled><option value="">Todas</option></select></label>
+            <label class="filter-field"><span>Semestre curricular</span><select id="sigaSemestrePlan" disabled><option value="">Todos</option></select></label>
+          </div>
+        </section>
         ${esAplicacion?sigaAplicacionHtml_():sigaResultadosHtml_()}
       </section>
 
-      <div class="dataset-status" id="sigaEstado">Seleccione un año para cargar los datasets SIGA.</div>
+      <div class="dataset-status" id="sigaEstado">Seleccione año y semestre calendario.</div>
     </main>`;
 
   sigaConfigurarInterfaz_(esAplicacion);
-  sigaCargarAnios_();
+  sigaCargarPeriodos_();
 }
 
 function sigaAplicacionHtml_(){
   return `<section class="siga-section">
-    <div class="siga-section-heading"><div><div class="siga-section-kicker">APLICACIÓN SIGA</div><h2>Avance de aplicación</h2><p>Datos de cobertura y completitud del registro para el año seleccionado.</p></div></div>
+    <div class="siga-section-heading"><div><div class="siga-section-kicker">APLICACIÓN SIGA</div><h2>Avance de aplicación</h2><p>Datos de cobertura y completitud del registro para el período seleccionado.</p></div></div>
     <section class="kpi-grid siga-kpi-grid">
-      ${sigaKpiHtml_('sigaKpiRamos','Cantidad de ramos ofrecidos','dato','Cantidad de filas del CSV de ramos ofrecidos luego de aplicar los filtros seleccionados.')}
-      ${sigaKpiHtml_('sigaKpiAlumnos','Alumnos cursando','dato','Cantidad de estudiantes de primer o segundo año obtenida desde Composición de matrícula, según el semestre seleccionado.')}
-      ${sigaKpiHtml_('sigaKpiEsperados','Registros esperados','calculo','Multiplicación entre la cantidad de ramos ofrecidos y la cantidad de alumnos cursando para la selección actual.')}
-      ${sigaKpiHtml_('sigaKpiProcesados','Registros procesados','dato','Cantidad de registros contenidos en el CSV de resultados SIGA para la selección actual.')}
+      ${sigaKpiHtml_('sigaKpiRamos','Cantidad de ramos ofrecidos','dato','Cantidad de registros del CSV de ramos ofrecidos para el período y filtros seleccionados.')}
+      ${sigaKpiHtml_('sigaKpiAlumnos','Alumnos cursando','dato','Suma de estudiantes de primer y segundo año desde Composición de matrícula para el año seleccionado.')}
+      ${sigaKpiHtml_('sigaKpiEsperados','Registros esperados','calculo','Estimación de registros esperados: en semestre calendario 1, primer año considera 5 ramos y segundo año 6; en semestre calendario 2, ambos años consideran 6 ramos.')}
+      ${sigaKpiHtml_('sigaKpiProcesados','Registros procesados','dato','Cantidad efectiva de registros contenidos en el CSV de resultados SIGA para el período y filtros seleccionados.')}
     </section>
     <section class="charts-grid">
       <article class="chart-card chart-card-wide"><div class="chart-title">Ramos ofrecidos por curso</div><div class="chart-subtitle">Cantidad de asignaturas incluidas en el instrumento según curso.</div><div id="sigaRamosCurso" class="bar-chart siga-bar-chart"></div></article>
@@ -68,12 +91,12 @@ function sigaAplicacionHtml_(){
 
 function sigaResultadosHtml_(){
   return `<section class="siga-section">
-    <div class="siga-section-heading"><div><div class="siga-section-kicker">RESULTADOS SIGA</div><h2>Resultados académicos</h2><p>Indicadores de desempeño académico consolidados una vez aplicado el instrumento.</p></div></div>
+    <div class="siga-section-heading"><div><div class="siga-section-kicker">RESULTADOS SIGA</div><h2>Resultados académicos</h2><p>Indicadores de desempeño académico del período seleccionado.</p></div></div>
     <section class="kpi-grid siga-kpi-grid">
-      ${sigaKpiHtml_('sigaKpiPromedio','Promedio final','calculo','Promedio de las notas finales disponibles. Los resultados pendientes sin nota final no se incluyen en este promedio.')}
-      ${sigaKpiHtml_('sigaKpiAprobacion','Aprobación','calculo','Porcentaje de registros con nota final igual o superior a 4,0 sobre el total de registros procesados del CSV.')}
+      ${sigaKpiHtml_('sigaKpiPromedio','Promedio final','calculo','Promedio de las notas finales disponibles. Los resultados pendientes sin nota final no se incluyen.')}
+      ${sigaKpiHtml_('sigaKpiAprobacion','Aprobación','calculo','Porcentaje de registros con nota final igual o superior a 4,0 sobre el total de registros procesados.')}
       ${sigaKpiHtml_('sigaKpiReprobacion','Reprobación','calculo','Porcentaje de registros con nota final inferior a 4,0. Corresponde a ramos reprobados, no a personas.')}
-      ${sigaKpiHtml_('sigaKpiPendientes','Resultados pendientes','calculo','Porcentaje de registros sin resultado final cerrado sobre el total de registros procesados del CSV.')}
+      ${sigaKpiHtml_('sigaKpiPendientes','Resultados pendientes','calculo','Porcentaje de registros sin resultado final cerrado sobre el total de registros procesados.')}
     </section>
     <section class="charts-grid">
       <article class="chart-card"><div class="chart-title">Promedio final por carrera</div><div class="chart-subtitle">Promedio de notas finales por carrera.</div><div id="sigaPromedioCarreras" class="bar-chart siga-bar-chart"></div></article>
@@ -91,16 +114,27 @@ function sigaKpiHtml_(id,titulo,tipo,ayuda){
       <span class="siga-source-badge ${tipo==='calculo'?'siga-source-calc':'siga-source-data'}">${tipo==='calculo'?'CÁLCULO':'DATO'}</span>
     </div>
     <div class="kpi-value" id="${id}">—</div>
-    <div class="kpi-note" id="${id}Nota">Seleccione un año</div>
+    <div class="kpi-note" id="${id}Nota">—</div>
   </article>`;
 }
 
 function sigaUploadPanelHtml_(){
   return `<section class="siga-upload-panel" id="sigaUploadPanel" hidden>
-    <div class="upload-panel-header"><div class="upload-panel-title">Actualizar datasets SIGA</div><div class="upload-panel-help">Los CSV se almacenan separados por año. El año indicado debe coincidir con el contenido del archivo.</div></div>
-    <div class="siga-upload-year"><label class="filter-field"><span>Año de carga</span><input id="sigaUploadAno" type="number" min="2020" max="2099" placeholder="2026"></label></div>
-    <div class="siga-upload-row"><div><strong>Ramos ofrecidos</strong><div class="upload-panel-help">Una fila por asignatura ofrecida en cada curso.</div></div><input type="file" id="sigaOfertaFile" accept=".csv,text/csv"><button type="button" id="sigaOfertaUploadBtn">Cargar CSV</button></div>
-    <div class="siga-upload-row"><div><strong>Resultados SIGA</strong><div class="upload-panel-help">Una fila por resultado de asignatura. El CSV publicado no contiene nombre ni RUT.</div></div><input type="file" id="sigaResultadosFile" accept=".csv,text/csv"><button type="button" id="sigaResultadosUploadBtn">Cargar CSV</button></div>
+    <div class="upload-panel-header">
+      <div class="upload-panel-title">Cargar archivo original de SIGA</div>
+      <div class="upload-panel-help">
+        El archivo debe identificar explícitamente el año calendario y si corresponde al semestre calendario 1 o 2. El original se conserva en la carpeta SIGA antes de procesarlo.
+      </div>
+    </div>
+    <div class="siga-upload-meta">
+      <label class="filter-field"><span>Año calendario</span><input id="sigaUploadAno" type="number" min="2020" max="2099" placeholder="2026"></label>
+      <label class="filter-field"><span>Semestre calendario</span><select id="sigaUploadSemestre"><option value="">Seleccione</option><option value="1">Semestre 1</option><option value="2">Semestre 2</option></select></label>
+    </div>
+    <div class="siga-upload-row siga-upload-xlsx-row">
+      <div><strong>Archivo XLSX exportado por SIGA</strong><div class="upload-panel-help">Se conservará el original y se generarán los CSV de ramos ofrecidos y resultados del período.</div></div>
+      <input type="file" id="sigaXlsxFile" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+      <button type="button" id="sigaXlsxUploadBtn">Cargar y procesar</button>
+    </div>
     <div class="upload-panel-status" id="sigaUploadStatus"></div>
   </section>`;
 }
@@ -114,40 +148,82 @@ function sigaConfigurarInterfaz_(esAplicacion){
   if(descargar) descargar.addEventListener('click',()=>sigaDescargarCsv_(esAplicacion?'siga_oferta':'siga_resultados'));
 
   const ano=document.getElementById('sigaAno');
-  if(ano) ano.addEventListener('change',()=>sigaSeleccionarAno_(ano.value));
+  const sem=document.getElementById('sigaSemestreCalendario');
+  if(ano) ano.addEventListener('change',()=>sigaCambioAno_(ano.value));
+  if(sem) sem.addEventListener('change',sigaSeleccionarPeriodo_);
 
-  ['sigaSede','sigaCarrera','sigaJornada','sigaSemestre'].forEach(id=>{
+  ['sigaSede','sigaCarrera','sigaJornada','sigaSemestrePlan'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.addEventListener('change',sigaActualizarVista_);
   });
 
-  const b1=document.getElementById('sigaOfertaUploadBtn');
-  const b2=document.getElementById('sigaResultadosUploadBtn');
-  if(b1) b1.addEventListener('click',()=>sigaSubirCsv_('siga_oferta','sigaOfertaFile'));
-  if(b2) b2.addEventListener('click',()=>sigaSubirCsv_('siga_resultados','sigaResultadosFile'));
+  const subir=document.getElementById('sigaXlsxUploadBtn');
+  if(subir) subir.addEventListener('click',sigaSubirXlsx_);
 }
 
-function sigaCargarAnios_(){
-  google.script.run.withSuccessHandler(function(items){
-    const select=document.getElementById('sigaAno'); if(!select)return;
-    select.innerHTML='<option value="">Seleccione un año</option>'+(items||[]).map(x=>`<option value="${escapeHtml_(x.ano)}">${escapeHtml_(x.ano)}</option>`).join('');
-    if(window.sigaState.ano && [...select.options].some(o=>o.value===window.sigaState.ano)){ select.value=window.sigaState.ano; sigaSeleccionarAno_(window.sigaState.ano); }
-  }).withFailureHandler(sigaMostrarError_).obtenerAniosSiga();
+function sigaCargarPeriodos_(){
+  google.script.run
+    .withSuccessHandler(function(items){
+      window.sigaState.periodos=items||[];
+      const select=document.getElementById('sigaAno');
+      if(!select)return;
+      const anos=[...new Set((items||[]).map(x=>String(x.ano)))].sort((a,b)=>Number(b)-Number(a));
+      select.innerHTML='<option value="">Seleccione año</option>'+anos.map(a=>`<option value="${escapeHtml_(a)}">${escapeHtml_(a)}</option>`).join('');
+    })
+    .withFailureHandler(sigaMostrarError_)
+    .obtenerPeriodosSiga();
 }
 
-function sigaSeleccionarAno_(ano){
+function sigaCambioAno_(ano){
   window.sigaState.ano=ano||'';
-  const content=document.getElementById('sigaContenido');
-  if(!ano){ if(content)content.classList.add('siga-content-disabled'); sigaSetEstado_('Seleccione un año para cargar los datasets SIGA.'); return; }
-  if(content)content.classList.remove('siga-content-disabled');
-  sigaSetEstado_('Cargando datasets SIGA '+ano+'...');
+  window.sigaState.semestreCalendario='';
+  const sem=document.getElementById('sigaSemestreCalendario');
+  if(sem){
+    sem.value='';
+    sem.disabled=!ano;
+    const disponibles=new Set((window.sigaState.periodos||[]).filter(x=>String(x.ano)===String(ano)).map(x=>String(x.semestre)));
+    [...sem.options].forEach(o=>{if(o.value)o.disabled=!disponibles.has(o.value);});
+  }
+  sigaOcultarContenido_('Seleccione año y semestre calendario.');
+}
+
+function sigaSeleccionarPeriodo_(){
+  const ano=String(document.getElementById('sigaAno')?.value||'');
+  const sem=String(document.getElementById('sigaSemestreCalendario')?.value||'');
+  window.sigaState.ano=ano;
+  window.sigaState.semestreCalendario=sem;
+
+  if(!ano||!sem){sigaOcultarContenido_('Seleccione año y semestre calendario.');return;}
+
+  sigaSetEstado_(`Cargando SIGA ${ano}-${sem}...`);
   window.sigaState.oferta=[]; window.sigaState.resultados=[]; window.sigaState.composicion=[];
-
   let pendientes=3;
-  const fin=()=>{pendientes--; if(pendientes===0){sigaPrepararFiltros_(); sigaActualizarVista_(); sigaSetEstado_('Datasets SIGA '+ano+' cargados correctamente.'); const d=document.getElementById('sigaDescargarBtn'); if(d)d.disabled=false;}};
+  let huboError=false;
+  const fin=()=>{
+    pendientes--;
+    if(pendientes!==0)return;
+    if(huboError){sigaOcultarContenido_(`No fue posible cargar completamente SIGA ${ano}-${sem}.`);return;}
+    sigaMostrarContenido_();
+    sigaPrepararFiltros_();
+    sigaActualizarVista_();
+    sigaSetEstado_(`SIGA ${ano}-${sem} cargado correctamente.`);
+    const d=document.getElementById('sigaDescargarBtn'); if(d)d.disabled=false;
+  };
 
-  google.script.run.withSuccessHandler(r=>{window.sigaState.oferta=r.registros||[];fin();}).withFailureHandler(e=>{sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_oferta',ano);
-  google.script.run.withSuccessHandler(r=>{window.sigaState.resultados=r.registros||[];fin();}).withFailureHandler(e=>{sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_resultados',ano);
+  google.script.run.withSuccessHandler(r=>{window.sigaState.oferta=r.registros||[];fin();}).withFailureHandler(e=>{huboError=true;sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_oferta',ano,sem);
+  google.script.run.withSuccessHandler(r=>{window.sigaState.resultados=r.registros||[];fin();}).withFailureHandler(e=>{huboError=true;sigaMostrarError_(e);fin();}).obtenerDatasetSiga('siga_resultados',ano,sem);
   google.script.run.withSuccessHandler(r=>{window.sigaState.composicion=r.registros||[];fin();}).withFailureHandler(e=>{window.sigaState.composicion=[];console.warn(e);fin();}).obtenerDataset('composicion_matricula');
+}
+
+function sigaOcultarContenido_(mensaje){
+  const c=document.getElementById('sigaContenido'); if(c)c.hidden=true;
+  const p=document.getElementById('sigaPeriodoPendiente'); if(p)p.hidden=false;
+  const d=document.getElementById('sigaDescargarBtn'); if(d)d.disabled=true;
+  sigaSetEstado_(mensaje||'Seleccione año y semestre calendario.');
+}
+
+function sigaMostrarContenido_(){
+  const c=document.getElementById('sigaContenido'); if(c)c.hidden=false;
+  const p=document.getElementById('sigaPeriodoPendiente'); if(p)p.hidden=true;
 }
 
 function sigaPrepararFiltros_(){
@@ -155,8 +231,8 @@ function sigaPrepararFiltros_(){
   sigaLlenarSelect_('sigaSede',base.map(r=>r.SEDE),'Todas las sedes');
   sigaLlenarSelect_('sigaCarrera',base.map(r=>r.CARRERA),'Todas las carreras');
   sigaLlenarSelect_('sigaJornada',base.map(r=>r.JORNADA),'Todas las jornadas');
-  sigaLlenarSelect_('sigaSemestre',base.map(r=>r.SEMESTRE),'Todos los semestres');
-  ['sigaSede','sigaCarrera','sigaJornada','sigaSemestre'].forEach(id=>{const x=document.getElementById(id);if(x)x.disabled=false;});
+  sigaLlenarSelect_('sigaSemestrePlan',base.map(r=>r.SEMESTRE_PLAN),'Todos');
+  ['sigaSede','sigaCarrera','sigaJornada','sigaSemestrePlan'].forEach(id=>{const x=document.getElementById(id);if(x)x.disabled=false;});
 }
 
 function sigaLlenarSelect_(id,valores,etiqueta){
@@ -166,12 +242,12 @@ function sigaLlenarSelect_(id,valores,etiqueta){
   if([...s.options].some(o=>o.value===actual))s.value=actual;
 }
 
-function sigaFiltros_(){return {sede:obtenerValorFiltro_('sigaSede'),carrera:obtenerValorFiltro_('sigaCarrera'),jornada:obtenerValorFiltro_('sigaJornada'),semestre:obtenerValorFiltro_('sigaSemestre')};}
+function sigaFiltros_(){return {sede:obtenerValorFiltro_('sigaSede'),carrera:obtenerValorFiltro_('sigaCarrera'),jornada:obtenerValorFiltro_('sigaJornada'),semestrePlan:obtenerValorFiltro_('sigaSemestrePlan')};}
 function sigaNorm_(v){return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toUpperCase();}
-function sigaCoincide_(r,f){return (!f.sede||sigaNorm_(r.SEDE)===sigaNorm_(f.sede))&&(!f.carrera||sigaNorm_(r.CARRERA)===sigaNorm_(f.carrera))&&(!f.jornada||sigaNorm_(r.JORNADA)===sigaNorm_(f.jornada))&&(!f.semestre||String(r.SEMESTRE)===String(f.semestre));}
+function sigaCoincide_(r,f){return (!f.sede||sigaNorm_(r.SEDE)===sigaNorm_(f.sede))&&(!f.carrera||sigaNorm_(r.CARRERA)===sigaNorm_(f.carrera))&&(!f.jornada||sigaNorm_(r.JORNADA)===sigaNorm_(f.jornada))&&(!f.semestrePlan||String(r.SEMESTRE_PLAN)===String(f.semestrePlan));}
 
 function sigaActualizarVista_(){
-  if(!window.sigaState.ano)return;
+  if(!window.sigaState.ano||!window.sigaState.semestreCalendario)return;
   const f=sigaFiltros_();
   const oferta=(window.sigaState.oferta||[]).filter(r=>sigaCoincide_(r,f));
   const resultados=(window.sigaState.resultados||[]).filter(r=>sigaCoincide_(r,f));
@@ -181,28 +257,45 @@ function sigaActualizarVista_(){
 
 function sigaActualizarAplicacion_(oferta,resultados,f){
   const ramos=oferta.length;
-  const composicion=sigaAlumnosComposicion_(f);
-  const alumnos=composicion.disponible?composicion.valor:null;
-  const esperados=alumnos===null?null:ramos*alumnos;
-  asignarTexto_('sigaKpiRamos',formatearNumero_(ramos)); asignarTexto_('sigaKpiRamosNota',`${formatearNumero_(ramos)} filas del CSV de ramos`);
-  asignarTexto_('sigaKpiAlumnos',alumnos===null?'—':formatearNumero_(alumnos)); asignarTexto_('sigaKpiAlumnosNota',alumnos===null?'Composición de matrícula no tiene datos para este año':'Dato desde Composición de matrícula');
-  asignarTexto_('sigaKpiEsperados',esperados===null?'—':formatearNumero_(esperados)); asignarTexto_('sigaKpiEsperadosNota',esperados===null?'Requiere datos de Composición de matrícula':`${formatearNumero_(ramos)} × ${formatearNumero_(alumnos)}`);
-  asignarTexto_('sigaKpiProcesados',formatearNumero_(resultados.length)); asignarTexto_('sigaKpiProcesadosNota','Filas del CSV de resultados SIGA');
+  const comp=sigaComposicionSeleccion_(f);
+  const alumnos=comp.disponible?comp.primero+comp.segundo:null;
+  const esperados=comp.disponible?sigaCalcularEsperados_(comp.primero,comp.segundo):null;
+
+  asignarTexto_('sigaKpiRamos',formatearNumero_(ramos));
+  asignarTexto_('sigaKpiRamosNota',`${formatearNumero_(ramos)} registros de ramos ofrecidos`);
+
+  asignarTexto_('sigaKpiAlumnos',alumnos===null?'—':formatearNumero_(alumnos));
+  asignarTexto_('sigaKpiAlumnosNota',alumnos===null?'Sin Composición de matrícula para el año seleccionado':`${formatearNumero_(comp.primero)} primer año + ${formatearNumero_(comp.segundo)} segundo año`);
+
+  asignarTexto_('sigaKpiEsperados',esperados===null?'—':formatearNumero_(esperados));
+  asignarTexto_('sigaKpiEsperadosNota',esperados===null?'Requiere Composición de matrícula':sigaFormulaEsperadosNota_(comp.primero,comp.segundo));
+
+  asignarTexto_('sigaKpiProcesados',formatearNumero_(resultados.length));
+  asignarTexto_('sigaKpiProcesadosNota','Registros efectivamente procesados desde SIGA');
   sigaDibujarRamosCurso_(oferta);
 }
 
-function sigaAlumnosComposicion_(f){
+function sigaComposicionSeleccion_(f){
   const ano=String(window.sigaState.ano||'');
   const rows=(window.sigaState.composicion||[]).filter(r=>String(r.ANIO)===ano && (!f.sede||sigaNorm_(r.SEDE)===sigaNorm_(f.sede)) && (!f.carrera||sigaNorm_(r.CARRERA)===sigaNorm_(f.carrera)) && (!f.jornada||sigaNorm_(r.JORNADA)===sigaNorm_(f.jornada)));
-  if(!rows.length)return {disponible:false,valor:null};
-  const sem=Number(f.semestre||0);
-  const valor=rows.reduce((s,r)=>{
-    const primero=numeroGenerico_(r.PRIMER_ANIO), segundo=numeroGenerico_(r.SEGUNDO_ANIO);
-    if(sem===1||sem===2)return s+primero;
-    if(sem===3||sem===4)return s+segundo;
-    return s+primero+segundo;
-  },0);
-  return {disponible:true,valor};
+  if(!rows.length)return {disponible:false,primero:0,segundo:0};
+  return rows.reduce((acc,r)=>{
+    acc.primero+=numeroGenerico_(r.PRIMER_ANIO);
+    acc.segundo+=numeroGenerico_(r.SEGUNDO_ANIO);
+    return acc;
+  },{disponible:true,primero:0,segundo:0});
+}
+
+function sigaCalcularEsperados_(primero,segundo){
+  const sem=String(window.sigaState.semestreCalendario||'');
+  return sem==='1' ? primero*5 + segundo*6 : primero*6 + segundo*6;
+}
+
+function sigaFormulaEsperadosNota_(primero,segundo){
+  const sem=String(window.sigaState.semestreCalendario||'');
+  return sem==='1'
+    ? `${formatearNumero_(primero)} × 5 + ${formatearNumero_(segundo)} × 6`
+    : `${formatearNumero_(primero)} × 6 + ${formatearNumero_(segundo)} × 6`;
 }
 
 function sigaActualizarResultados_(rows){
@@ -219,22 +312,51 @@ function sigaActualizarResultados_(rows){
 
 function sigaNumeroFront_(v){const t=String(v??'').trim().replace(',','.');if(!t)return null;const n=Number(t);return Number.isFinite(n)?n:null;}
 function sigaEtiquetaCorta_(t){return String(t||'').replace(/^TÉCNICO DE NIVEL SUPERIOR EN /i,'').replace(/^Técnico de Nivel Superior en /i,'').replace(/^TÉCNICO DE NIVEL SUPERIOR /i,'').replace(/^Técnico de Nivel Superior /i,'');}
-function sigaNombreCursoRegistro_(r){return [sigaEtiquetaCorta_(r.CARRERA),r.SEMESTRE?`Sem. ${r.SEMESTRE}`:'',r.JORNADA,r.SEDE].filter(Boolean).join(' · ');}
+function sigaNombreCursoRegistro_(r){return [sigaEtiquetaCorta_(r.CARRERA),r.SEMESTRE_PLAN?`Sem. ${r.SEMESTRE_PLAN}`:'',r.JORNADA,r.SEDE].filter(Boolean).join(' · ');}
 function sigaDibujarRamosCurso_(rows){const m={};rows.forEach(r=>{const k=r.ID_CURSO||sigaNombreCursoRegistro_(r);if(!m[k])m[k]={r:r,n:0};m[k].n++;});const d=Object.values(m).map(x=>({etiqueta:sigaNombreCursoRegistro_(x.r),valor:x.n})).sort((a,b)=>b.valor-a.valor);dibujarBarras_('sigaRamosCurso',d,30);}
 function sigaDibujarPromedio_(id,rows,campo){const m={};rows.forEach(r=>{const n=sigaNumeroFront_(r.PROMEDIO_FINAL);if(n===null||String(r.SITUACION||'').toUpperCase()==='PENDIENTE')return;const k=r[campo]||'Sin información';m[k]=m[k]||{s:0,n:0};m[k].s+=n;m[k].n++;});const d=Object.entries(m).map(([k,v])=>({etiqueta:sigaEtiquetaCorta_(k),valor:v.n?v.s/v.n:0})).sort((a,b)=>b.valor-a.valor);sigaDibujarBarrasNota_(id,d);}
 function sigaDibujarBarrasNota_(id,datos){const c=document.getElementById(id);if(!c)return;if(!datos.length){c.innerHTML='<div class="chart-empty">No hay datos para la selección actual.</div>';return;}c.innerHTML=datos.map(d=>{const w=Math.max(2,Math.min(100,d.valor/7*100));return `<div class="bar-row"><div class="bar-label" title="${escapeHtml_(d.etiqueta)}">${escapeHtml_(d.etiqueta)}</div><div class="bar-track"><div class="bar-fill" style="width:${w.toFixed(1)}%"></div></div><div class="bar-value">${d.valor.toFixed(1).replace('.',',')}</div></div>`;}).join('');}
 
-function sigaSubirCsv_(tipo,inputId){
-  const ano=String(document.getElementById('sigaUploadAno')?.value||'').trim(); const input=document.getElementById(inputId); const estado=document.getElementById('sigaUploadStatus');
-  if(!/^20\d{2}$/.test(ano)){if(estado)estado.textContent='Indique primero el año de carga.';return;}
-  if(!input?.files?.length){if(estado)estado.textContent='Seleccione un archivo CSV.';return;}
-  const file=input.files[0]; if(!file.name.toLowerCase().endsWith('.csv')){if(estado)estado.textContent='El archivo debe ser CSV.';return;}
-  if(estado)estado.textContent='Leyendo y validando '+file.name+'...'; const reader=new FileReader();
-  reader.onload=e=>google.script.run.withSuccessHandler(r=>{if(estado)estado.textContent=`Carga correcta: ${r.cantidadRegistros.toLocaleString('es-CL')} registros en ${r.archivoOficial}.`;input.value='';sigaCargarAnios_();const s=document.getElementById('sigaAno');if(s){setTimeout(()=>{s.value=ano;s.dispatchEvent(new Event('change'));},100);}}).withFailureHandler(err=>{if(estado)estado.textContent='Error: '+(err?.message||String(err));}).actualizarDatasetSiga(tipo,ano,e.target.result,file.name);
-  reader.readAsText(file,'UTF-8');
+function sigaSubirXlsx_(){
+  const ano=String(document.getElementById('sigaUploadAno')?.value||'').trim();
+  const sem=String(document.getElementById('sigaUploadSemestre')?.value||'').trim();
+  const input=document.getElementById('sigaXlsxFile');
+  const estado=document.getElementById('sigaUploadStatus');
+
+  if(!/^20\d{2}$/.test(ano)){if(estado)estado.textContent='Indique un año calendario válido.';return;}
+  if(!['1','2'].includes(sem)){if(estado)estado.textContent='Seleccione semestre calendario 1 o 2.';return;}
+  if(!input?.files?.length){if(estado)estado.textContent='Seleccione el archivo XLSX exportado por SIGA.';return;}
+
+  const file=input.files[0];
+  if(!file.name.toLowerCase().endsWith('.xlsx')){if(estado)estado.textContent='El archivo debe estar en formato XLSX.';return;}
+  if(estado)estado.textContent='Guardando original y procesando '+file.name+'...';
+
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const dataUrl=String(e.target.result||'');
+    const base64=dataUrl.includes(',')?dataUrl.split(',')[1]:'';
+    google.script.run
+      .withSuccessHandler(r=>{
+        if(estado)estado.textContent=`Proceso correcto: ${r.ramosOfrecidos.toLocaleString('es-CL')} ramos y ${r.registrosProcesados.toLocaleString('es-CL')} registros SIGA para ${r.periodo}.`;
+        input.value='';
+        sigaCargarPeriodos_();
+        setTimeout(()=>{
+          const a=document.getElementById('sigaAno'); const s=document.getElementById('sigaSemestreCalendario');
+          if(a){a.value=ano;sigaCambioAno_(ano);}
+          if(s){s.value=sem;s.disabled=false;sigaSeleccionarPeriodo_();}
+        },150);
+      })
+      .withFailureHandler(err=>{if(estado)estado.textContent='Error: '+(err?.message||String(err));})
+      .procesarArchivoSigaXlsx(ano,sem,base64,file.name,file.type);
+  };
+  reader.readAsDataURL(file);
 }
 
-function sigaDescargarCsv_(tipo){const ano=window.sigaState.ano;if(!ano)return;google.script.run.withSuccessHandler(r=>{if(!r?.disponible)return;const blob=new Blob(['\uFEFF'+r.contenido],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=r.archivo;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}).obtenerCsvSigaDescarga(tipo,ano);}
+function sigaDescargarCsv_(tipo){
+  const ano=window.sigaState.ano, sem=window.sigaState.semestreCalendario;
+  if(!ano||!sem)return;
+  google.script.run.withSuccessHandler(r=>{if(!r?.disponible)return;const blob=new Blob(['\uFEFF'+r.contenido],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=r.archivo;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}).obtenerCsvSigaDescarga(tipo,ano,sem);
+}
 function sigaSetEstado_(txt){const e=document.getElementById('sigaEstado');if(e){e.textContent=txt;e.classList.remove('error');}}
 function sigaMostrarError_(err){const e=document.getElementById('sigaEstado');if(e){e.textContent='Error SIGA: '+(err?.message||String(err));e.classList.add('error');}console.error(err);}
 

@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "COMMIT_MSG=Implementa Resultados SIGA 2026-1 en dashboard institucional"
+set "COMMIT_MSG=Reestructura SIGA por año y semestre calendario"
 
 echo ============================================
 echo   CFT Laplace - Despliegue Dashboard
@@ -51,7 +51,7 @@ if errorlevel 1 goto :error
 
 echo.
 echo [4/5] Creando commit...
-git commit -m "Implementa carga anual y rediseño de Resultados SIGA"
+git commit -m "%COMMIT_MSG%"
 if errorlevel 1 (
     echo.
     echo No se creo un commit nuevo.
