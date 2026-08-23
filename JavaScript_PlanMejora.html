@@ -1,4 +1,801 @@
-<script>
-/* Plan de Mejora: reservado para próximas implementaciones. */
-</script>
+<style>
+.pm-table-wrap{overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:4px;margin-top:14px}
+.pm-table{width:100%;border-collapse:collapse;font-size:12px}
+.pm-table th,.pm-table td{padding:9px 10px;border-bottom:1px solid var(--line-soft);text-align:left;vertical-align:top}
+.pm-table th{position:sticky;top:0;background:var(--navy-soft);color:var(--navy);font-size:11px}
+.pm-row:hover{background:var(--teal-soft)}
+.pm-state-select{min-width:120px;padding:5px 7px;border:1px solid var(--line);border-radius:3px;background:var(--surface);font-family:Calibri,sans-serif;font-size:12px}
+.pm-follow-btn{border:1px solid var(--navy);border-radius:3px;background:var(--surface);color:var(--navy);padding:6px 9px;font-family:Calibri,sans-serif;font-size:11.5px;font-weight:600;cursor:pointer}
+.pm-follow-btn:hover{background:var(--navy-soft)}
+.pm-save-status{font-size:11px;color:var(--ink-muted);margin-top:4px;min-height:14px}
 
+.pm-dimension{margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:4px;overflow:hidden}
+.pm-dimension-toggle{width:100%;border:0;background:transparent;padding:14px 16px;cursor:pointer;text-align:left;font-family:Calibri,sans-serif;color:var(--ink)}
+.pm-dimension-toggle:hover{background:var(--navy-soft)}
+.pm-dimension-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-weight:700}
+.pm-dimension-arrow{display:inline-block;width:16px;color:var(--navy)}
+.pm-progress{height:9px;background:var(--line-soft);border-radius:2px;margin-top:9px;overflow:hidden}
+.pm-progress>div{height:100%;background:var(--teal)}
+.pm-dimension-actions{border-top:1px solid var(--line-soft);padding:8px 16px 12px 42px;background:#FAFBF9}
+.pm-dimension-actions ul{margin:0;padding-left:18px}
+.pm-dimension-actions li{margin:6px 0;font-size:12.5px;line-height:1.35;color:var(--ink-muted)}
+
+.pm-detail{margin-top:14px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:4px}
+.pm-detail h3{margin:0 0 12px;color:var(--navy)}
+.pm-detail-grid{display:grid;grid-template-columns:160px 1fr;gap:8px 14px;font-size:12.5px}
+.pm-detail-label{font-weight:700;color:var(--ink-muted)}
+.pm-follow-form{margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.pm-follow-form-grid{display:grid;grid-template-columns:160px 1fr;gap:10px 14px;align-items:start}
+.pm-follow-form input,.pm-follow-form select,.pm-follow-form textarea{width:100%;padding:7px 9px;border:1px solid var(--line);border-radius:3px;background:var(--surface);font-family:Calibri,sans-serif;font-size:12.5px}
+.pm-follow-form textarea{min-height:90px;resize:vertical}
+.pm-follow-actions{display:flex;align-items:center;gap:12px;margin-top:12px}
+.pm-primary-btn{border:1px solid var(--navy);border-radius:3px;background:var(--navy);color:#fff;padding:8px 13px;font-family:Calibri,sans-serif;font-size:12.5px;font-weight:600;cursor:pointer}
+.pm-primary-btn:disabled{opacity:.55;cursor:not-allowed}
+.pm-follow-message{font-size:12px;color:var(--ink-muted)}
+.pm-evidence-link{color:var(--navy);font-weight:600}
+
+.pm-timeline{display:grid;grid-template-columns:240px repeat(20,minmax(28px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);overflow:auto;margin-top:14px}
+.pm-timeline>div{background:var(--surface);padding:6px;font-size:10px;min-height:28px}
+.pm-timeline .head{background:var(--navy-soft);font-weight:700;text-align:center}
+.pm-timeline .name{font-size:11px}
+.pm-timeline .on{background:var(--teal-soft)}
+.pm-timeline .edge{background:var(--teal)}
+.pm-timeline .single{background:var(--navy)}
+
+@media(max-width:700px){
+  .pm-detail-grid,.pm-follow-form-grid{grid-template-columns:1fr}
+  .pm-timeline{grid-template-columns:180px repeat(20,28px)}
+}
+</style>
+
+<script>
+(function(){
+  var cachePlanMejora = null;
+  var vistaPlanMejora = 'pm_resumen';
+  var dimensionAbierta = '';
+
+  var categoria = CATEGORIES.find(function(c){
+    return c.id === 'plan_mejora';
+  });
+
+  if (categoria) {
+    categoria.tabs = [
+      {id:'pm_resumen', label:'Resumen'},
+      {id:'pm_cronograma', label:'Cronograma'},
+      {id:'pm_actividades', label:'Actividades'}
+    ];
+  }
+
+  // Plan de Mejora no depende del mecanismo datasetAvailability.
+  // Su subpestaña activa se marca siempre que la categoría esté seleccionada.
+  var renderTabBarOriginalPM_ = renderTabBar;
+
+  renderTabBar = function(){
+    if (currentCategory !== 'plan_mejora') {
+      return renderTabBarOriginalPM_();
+    }
+
+    var bar = document.getElementById('tabBar');
+    var cat = currentCategoryObj();
+
+    bar.style.display = 'flex';
+    bar.innerHTML = cat.tabs.map(function(t){
+      return '<button data-tab="' + t.id + '" class="' +
+        (currentTab === t.id ? 'available active' : 'available') +
+        '">' + t.label + '</button>';
+    }).join('');
+
+    bar.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        currentTab = btn.dataset.tab;
+        vistaPlanMejora = currentTab;
+        cerrarPanelActualizacion_();
+        renderTabBar();
+        renderCurrentTab();
+      });
+    });
+  };
+
+  var renderCurrentTabOriginalPM_ = renderCurrentTab;
+
+  renderCurrentTab = function(){
+    if (currentCategory === 'plan_mejora') {
+      vistaPlanMejora = currentTab || 'pm_resumen';
+
+      if (!currentTab) {
+        currentTab = 'pm_resumen';
+        vistaPlanMejora = currentTab;
+        renderTabBar();
+      }
+
+      renderPlanMejora_();
+      return;
+    }
+
+    return renderCurrentTabOriginalPM_();
+  };
+
+  function renderPlanMejora_(){
+    var contenedor = document.getElementById('tabContent');
+
+    contenedor.innerHTML =
+      '<main class="dataset-view">' +
+        '<div class="dataset-status">Cargando Plan de Mejora…</div>' +
+      '</main>';
+
+    if (cachePlanMejora) {
+      dibujarPlanMejora_(cachePlanMejora);
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(respuesta){
+        cachePlanMejora = respuesta;
+        dibujarPlanMejora_(respuesta);
+      })
+      .withFailureHandler(function(error){
+        contenedor.innerHTML =
+          '<main class="dataset-view">' +
+            '<div class="dataset-status error">' +
+              'Error al cargar Plan de Mejora: ' +
+              escapeHtml_(error && error.message ? error.message : error) +
+            '</div>' +
+          '</main>';
+      })
+      .obtenerPlanMejora();
+  }
+
+  function dibujarPlanMejora_(data){
+    var contenedor = document.getElementById('tabContent');
+    var registros = data.registros || [];
+
+    contenedor.innerHTML =
+      '<main class="dataset-view">' +
+        '<div class="dataset-view-header">' +
+          '<div>' +
+            '<div class="dataset-view-title-row">' +
+              '<div class="dataset-view-title">Plan de Mejora Institucional 2026-2027</div>' +
+              '<button class="download-link" id="pmDownload">Descargar CSV</button>' +
+            '</div>' +
+            '<div class="dataset-view-subtitle">' +
+              formatearNumero_(registros.length) +
+              ' acciones del Plan de Mejora Institucional 2026-2027.' +
+            '</div>' +
+          '</div>' +
+        '</div>' +
+        filtrosHtml_(data.filtros || {}) +
+        '<div id="pmBody"></div>' +
+      '</main>';
+
+    [
+      'pmDimension',
+      'pmCriterio',
+      'pmProposito',
+      'pmAno',
+      'pmResponsable'
+    ].forEach(function(id){
+      var control = document.getElementById(id);
+      if (control) control.addEventListener('change', actualizarPlan_);
+    });
+
+    document
+      .getElementById('pmDownload')
+      .addEventListener('click', descargarPlanCsv_);
+
+    actualizarPlan_();
+  }
+
+  function filtrosHtml_(filtros){
+    return '<section class="filter-panel">' +
+      '<div class="filter-panel-title">Filtros</div>' +
+      '<div class="filter-grid">' +
+        selectFiltro_('pmDimension', 'Dimensión', filtros.dimensiones) +
+        selectFiltro_('pmCriterio', 'Criterio', filtros.criterios) +
+        selectFiltro_('pmProposito', 'Propósito', filtros.propositos) +
+        selectFiltro_('pmAno', 'Año', filtros.anos) +
+        selectFiltro_('pmResponsable', 'Responsable', filtros.responsables) +
+      '</div>' +
+    '</section>';
+  }
+
+  function selectFiltro_(id, label, valores){
+    return '<label class="filter-field">' +
+      '<span>' + label + '</span>' +
+      '<select id="' + id + '">' +
+        '<option value="">Todos</option>' +
+        (valores || []).map(function(valor){
+          return '<option value="' + escapeHtml_(valor) + '">' +
+            escapeHtml_(valor) +
+          '</option>';
+        }).join('') +
+      '</select>' +
+    '</label>';
+  }
+
+  function registrosFiltrados_(){
+    var registros =
+      (cachePlanMejora && cachePlanMejora.registros) || [];
+
+    var dimension = obtenerValorSeguro_('pmDimension');
+    var criterio = obtenerValorSeguro_('pmCriterio');
+    var proposito = obtenerValorSeguro_('pmProposito');
+    var ano = obtenerValorSeguro_('pmAno');
+    var responsable = obtenerValorSeguro_('pmResponsable');
+
+    return registros.filter(function(registro){
+      return (!dimension || registro.DIMENSION === dimension) &&
+        (!criterio || registro.CRITERIO === criterio) &&
+        (!proposito || registro.PROPOSITO === proposito) &&
+        (!ano || registro.ANIO === ano) &&
+        (
+          !responsable ||
+          String(registro.RESPONSABLES || '').indexOf(responsable) !== -1
+        );
+    });
+  }
+
+  function obtenerValorSeguro_(id){
+    var control = document.getElementById(id);
+    return control ? control.value : '';
+  }
+
+  function actualizarPlan_(){
+    var registros = registrosFiltrados_();
+    var cuerpo = document.getElementById('pmBody');
+
+    if (!cuerpo) return;
+
+    if (
+      dimensionAbierta &&
+      !registros.some(function(r){ return r.DIMENSION === dimensionAbierta; })
+    ) {
+      dimensionAbierta = '';
+    }
+
+    if (vistaPlanMejora === 'pm_cronograma') {
+      cuerpo.innerHTML = cronograma_(registros);
+      return;
+    }
+
+    if (vistaPlanMejora === 'pm_actividades') {
+      cuerpo.innerHTML = actividades_(registros);
+      enlazarActividades_();
+      return;
+    }
+
+    cuerpo.innerHTML = resumen_(registros);
+    enlazarDimensiones_();
+  }
+
+  function resumen_(registros){
+    var dimensiones = {};
+    var criterios = {};
+    var costo = 0;
+    var conAvance = 0;
+    var sumaAvance = 0;
+
+    registros.forEach(function(registro){
+      dimensiones[registro.DIMENSION] =
+        (dimensiones[registro.DIMENSION] || 0) + 1;
+
+      criterios[registro.CRITERIO] = true;
+      costo += Number(registro.COSTO_MM || 0);
+
+      var avance = Number(
+        String(registro.AVANCE || '').replace(',', '.')
+      );
+
+      if (
+        isFinite(avance) &&
+        String(registro.AVANCE || '') !== ''
+      ) {
+        conAvance++;
+        sumaAvance += avance;
+      }
+    });
+
+    var promedio = conAvance
+      ? sumaAvance / conAvance
+      : null;
+
+    var html =
+      '<div class="kpi-grid">' +
+        kpi_('Actividades', registros.length, 'Según filtros') +
+        kpi_(
+          'Criterios',
+          Object.keys(criterios).length,
+          'Criterios CNA cubiertos'
+        ) +
+        kpi_(
+          'Recursos estimados',
+          'CLP ' +
+            costo.toLocaleString(
+              'es-CL',
+              {minimumFractionDigits:1, maximumFractionDigits:1}
+            ) +
+            ' MM',
+          'Suma de actividades filtradas'
+        ) +
+        kpi_(
+          'Avance',
+          promedio === null
+            ? 'Sin seguimiento'
+            : promedio.toLocaleString(
+                'es-CL',
+                {maximumFractionDigits:1}
+              ) + '%',
+          'Promedio de actividades con avance informado'
+        ) +
+      '</div>';
+
+    Object.keys(dimensiones)
+      .sort()
+      .forEach(function(dimension){
+        var cantidad = dimensiones[dimension];
+        var porcentaje =
+          registros.length ? cantidad * 100 / registros.length : 0;
+        var abierta = dimensionAbierta === dimension;
+
+        var acciones = registros
+          .filter(function(r){ return r.DIMENSION === dimension; })
+          .map(function(r){
+            return '<li>' + escapeHtml_(r.ACTIVIDAD) + '</li>';
+          })
+          .join('');
+
+        html +=
+          '<div class="pm-dimension">' +
+            '<button type="button" class="pm-dimension-toggle" ' +
+              'data-dimension="' + escapeHtml_(dimension) + '" ' +
+              'aria-expanded="' + (abierta ? 'true' : 'false') + '">' +
+              '<div class="pm-dimension-head">' +
+                '<span><span class="pm-dimension-arrow">' +
+                  (abierta ? '▾' : '▸') +
+                '</span>' +
+                escapeHtml_(dimension) +
+                '</span>' +
+                '<span>' +
+                  cantidad +
+                  (cantidad === 1 ? ' actividad' : ' actividades') +
+                '</span>' +
+              '</div>' +
+              '<div class="pm-progress">' +
+                '<div style="width:' +
+                  porcentaje.toFixed(2) +
+                  '%"></div>' +
+              '</div>' +
+            '</button>' +
+            (
+              abierta
+                ? '<div class="pm-dimension-actions"><ul>' +
+                    acciones +
+                  '</ul></div>'
+                : ''
+            ) +
+          '</div>';
+      });
+
+    return html;
+  }
+
+  function enlazarDimensiones_(){
+    document
+      .querySelectorAll('.pm-dimension-toggle')
+      .forEach(function(boton){
+        boton.addEventListener('click', function(){
+          var dimension = boton.dataset.dimension;
+
+          dimensionAbierta =
+            dimensionAbierta === dimension
+              ? ''
+              : dimension;
+
+          actualizarPlan_();
+        });
+      });
+  }
+
+  function kpi_(label, valor, nota){
+    return '<div class="kpi-card">' +
+      '<div class="kpi-label">' + label + '</div>' +
+      '<div class="kpi-value">' + valor + '</div>' +
+      '<div class="kpi-note">' + nota + '</div>' +
+    '</div>';
+  }
+
+  function opcionesEstado_(seleccionado){
+    var estados =
+      (cachePlanMejora && cachePlanMejora.estadosPermitidos) || [
+        'No iniciada',
+        'Iniciada',
+        'En proceso',
+        'Demorada',
+        'Terminada',
+        'No realizada'
+      ];
+
+    var html =
+      '<option value=""' +
+      (!seleccionado ? ' selected' : '') +
+      '>Sin seguimiento</option>';
+
+    estados.forEach(function(estado){
+      html +=
+        '<option value="' + escapeHtml_(estado) + '"' +
+        (seleccionado === estado ? ' selected' : '') +
+        '>' + escapeHtml_(estado) + '</option>';
+    });
+
+    return html;
+  }
+
+  function actividades_(registros){
+    if (!registros.length) {
+      return '<div class="category-empty">' +
+        'No hay actividades para los filtros seleccionados.' +
+      '</div>';
+    }
+
+    return '<div class="pm-table-wrap">' +
+      '<table class="pm-table">' +
+        '<thead>' +
+          '<tr>' +
+            '<th>ID</th>' +
+            '<th>Criterio</th>' +
+            '<th>Actividad</th>' +
+            '<th>Período</th>' +
+            '<th>Responsables</th>' +
+            '<th>Estado</th>' +
+            '<th>Seguimiento</th>' +
+          '</tr>' +
+        '</thead>' +
+        '<tbody>' +
+          registros.map(function(registro){
+            return '<tr class="pm-row" data-id="' +
+              escapeHtml_(registro.ID) +
+              '">' +
+              '<td>' + escapeHtml_(registro.ID) + '</td>' +
+              '<td>' + escapeHtml_(registro.CRITERIO) + '</td>' +
+              '<td>' + escapeHtml_(registro.ACTIVIDAD) + '</td>' +
+              '<td>' +
+                escapeHtml_(registro.FECHA_INICIO) +
+                ' → ' +
+                escapeHtml_(registro.FECHA_TERMINO) +
+              '</td>' +
+              '<td>' + escapeHtml_(registro.RESPONSABLES) + '</td>' +
+              '<td>' +
+                '<select class="pm-state-select" data-id="' +
+                  escapeHtml_(registro.ID) +
+                  '">' +
+                  opcionesEstado_(registro.ESTADO || '') +
+                '</select>' +
+                '<div class="pm-save-status" id="pmEstadoMsg-' +
+                  escapeHtml_(registro.ID) +
+                  '"></div>' +
+              '</td>' +
+              '<td>' +
+                '<button type="button" class="pm-follow-btn" data-id="' +
+                  escapeHtml_(registro.ID) +
+                  '">Seguimiento</button>' +
+              '</td>' +
+            '</tr>';
+          }).join('') +
+        '</tbody>' +
+      '</table>' +
+    '</div>' +
+    '<div id="pmDetalle"></div>';
+  }
+
+  function enlazarActividades_(){
+    document
+      .querySelectorAll('.pm-state-select')
+      .forEach(function(select){
+        select.addEventListener('click', function(evento){
+          evento.stopPropagation();
+        });
+
+        select.addEventListener('change', function(evento){
+          evento.stopPropagation();
+          guardarEstadoRapido_(select);
+        });
+      });
+
+    document
+      .querySelectorAll('.pm-follow-btn')
+      .forEach(function(boton){
+        boton.addEventListener('click', function(evento){
+          evento.stopPropagation();
+          abrirSeguimiento_(boton.dataset.id);
+        });
+      });
+  }
+
+  function buscarRegistro_(id){
+    return (
+      (cachePlanMejora && cachePlanMejora.registros) || []
+    ).find(function(registro){
+      return registro.ID === id;
+    });
+  }
+
+  function guardarEstadoRapido_(select){
+    var id = select.dataset.id;
+    var mensaje =
+      document.getElementById('pmEstadoMsg-' + id);
+
+    select.disabled = true;
+    if (mensaje) mensaje.textContent = 'Guardando…';
+
+    google.script.run
+      .withSuccessHandler(function(respuesta){
+        actualizarRegistroCache_(respuesta.registro);
+        select.disabled = false;
+
+        if (mensaje) {
+          mensaje.textContent = 'Guardado';
+          setTimeout(function(){
+            if (mensaje) mensaje.textContent = '';
+          }, 1500);
+        }
+      })
+      .withFailureHandler(function(error){
+        select.disabled = false;
+
+        var registro = buscarRegistro_(id);
+        select.value = registro ? (registro.ESTADO || '') : '';
+
+        if (mensaje) {
+          mensaje.textContent =
+            'Error: ' +
+            (error && error.message ? error.message : error);
+        }
+      })
+      .actualizarSeguimientoPlanMejora(
+        id,
+        {estado:select.value}
+      );
+  }
+
+  function abrirSeguimiento_(id){
+    var registro = buscarRegistro_(id);
+    var detalle = document.getElementById('pmDetalle');
+
+    if (!registro || !detalle) return;
+
+    var evidenciaActual = registro.URL_EVIDENCIA || '';
+
+    detalle.innerHTML =
+      '<div class="pm-detail">' +
+        '<h3>' +
+          escapeHtml_(registro.ID) +
+          ' · ' +
+          escapeHtml_(registro.CRITERIO) +
+        '</h3>' +
+        '<div class="pm-detail-grid">' +
+          datoDetalle_('Dimensión', registro.DIMENSION) +
+          datoDetalle_('Actividad', registro.ACTIVIDAD) +
+          datoDetalle_('Propósito', registro.PROPOSITO) +
+          datoDetalle_(
+            'Período',
+            registro.FECHA_INICIO + ' → ' + registro.FECHA_TERMINO
+          ) +
+          datoDetalle_('Meta', registro.META) +
+          (registro.INDICADOR ? datoDetalle_('Indicador', registro.INDICADOR) : '') +
+          datoDetalle_('Criterio de logro', registro.CRITERIO_LOGRO) +
+          datoDetalle_('Evidencia esperada', registro.EVIDENCIA) +
+          datoDetalle_('Recursos', registro.RECURSOS) +
+          datoDetalle_('Responsables', registro.RESPONSABLES) +
+          datoDetalle_(
+            'Última actualización',
+            registro.FECHA_ACTUALIZACION || 'Sin seguimiento'
+          ) +
+          (
+            evidenciaActual
+              ? '<div class="pm-detail-label">Evidencia registrada</div>' +
+                '<div><a class="pm-evidence-link" target="_blank" href="' +
+                  escapeHtml_(evidenciaActual) +
+                  '">Ver evidencia</a></div>'
+              : ''
+          ) +
+        '</div>' +
+
+        '<div class="pm-follow-form">' +
+          '<div class="pm-follow-form-grid">' +
+            '<label class="pm-detail-label" for="pmSeguimientoEstado">' +
+              'Estado' +
+            '</label>' +
+            '<select id="pmSeguimientoEstado">' +
+              opcionesEstado_(registro.ESTADO || '') +
+            '</select>' +
+
+            '<label class="pm-detail-label" for="pmSeguimientoAvance">' +
+              'Avance (%)' +
+            '</label>' +
+            '<input id="pmSeguimientoAvance" type="number" min="0" max="100" step="1" value="' +
+              escapeHtml_(registro.AVANCE || '') +
+            '">' +
+
+            '<label class="pm-detail-label" for="pmSeguimientoObservacion">' +
+              'Observación' +
+            '</label>' +
+            '<textarea id="pmSeguimientoObservacion">' +
+              escapeHtml_(registro.OBSERVACION || '') +
+            '</textarea>' +
+
+            '<label class="pm-detail-label" for="pmSeguimientoUrl">' +
+              'URL de evidencia' +
+            '</label>' +
+            '<input id="pmSeguimientoUrl" type="url" value="' +
+              escapeHtml_(evidenciaActual) +
+              '" placeholder="https://drive.google.com/...">' +
+          '</div>' +
+
+          '<div class="pm-follow-actions">' +
+            '<button type="button" class="pm-primary-btn" id="pmGuardarSeguimiento">' +
+              'Guardar seguimiento' +
+            '</button>' +
+            '<span class="pm-follow-message" id="pmSeguimientoMensaje"></span>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document
+      .getElementById('pmGuardarSeguimiento')
+      .addEventListener('click', function(){
+        guardarSeguimientoCompleto_(id);
+      });
+
+    detalle.scrollIntoView({
+      behavior:'smooth',
+      block:'nearest'
+    });
+  }
+
+  function datoDetalle_(label, valor){
+    return '<div class="pm-detail-label">' +
+      escapeHtml_(label) +
+    '</div><div>' +
+      escapeHtml_(valor || '') +
+    '</div>';
+  }
+
+  function guardarSeguimientoCompleto_(id){
+    var boton = document.getElementById('pmGuardarSeguimiento');
+    var mensaje = document.getElementById('pmSeguimientoMensaje');
+
+    var avance =
+      document.getElementById('pmSeguimientoAvance').value.trim();
+
+    if (avance !== '') {
+      var numero = Number(avance);
+
+      if (!Number.isFinite(numero) || numero < 0 || numero > 100) {
+        mensaje.textContent = 'El avance debe estar entre 0 y 100.';
+        return;
+      }
+    }
+
+    var cambios = {
+      estado:
+        document.getElementById('pmSeguimientoEstado').value,
+      avance: avance,
+      observacion:
+        document.getElementById('pmSeguimientoObservacion').value,
+      urlEvidencia:
+        document.getElementById('pmSeguimientoUrl').value
+    };
+
+    boton.disabled = true;
+    mensaje.textContent = 'Guardando…';
+
+    google.script.run
+      .withSuccessHandler(function(respuesta){
+        actualizarRegistroCache_(respuesta.registro);
+        mensaje.textContent = 'Seguimiento guardado correctamente.';
+        boton.disabled = false;
+
+        // Actualiza la tabla manteniendo los filtros actuales.
+        actualizarPlan_();
+        abrirSeguimiento_(id);
+      })
+      .withFailureHandler(function(error){
+        boton.disabled = false;
+        mensaje.textContent =
+          'Error: ' +
+          (error && error.message ? error.message : error);
+      })
+      .actualizarSeguimientoPlanMejora(id, cambios);
+  }
+
+  function actualizarRegistroCache_(registroActualizado){
+    if (!registroActualizado || !cachePlanMejora) return;
+
+    var indice = cachePlanMejora.registros.findIndex(function(registro){
+      return registro.ID === registroActualizado.ID;
+    });
+
+    if (indice >= 0) {
+      cachePlanMejora.registros[indice] = registroActualizado;
+    }
+  }
+
+  function cronograma_(registros){
+    var meses = [];
+
+    for (var ano = 2026; ano <= 2027; ano++) {
+      for (var mes = 3; mes <= 12; mes++) {
+        meses.push(
+          ano + '-' + String(mes).padStart(2, '0')
+        );
+      }
+    }
+
+    var html =
+      '<div class="pm-timeline">' +
+        '<div class="head">Actividad</div>' +
+        meses.map(function(mes){
+          return '<div class="head">' +
+            mes.slice(2) +
+          '</div>';
+        }).join('');
+
+    registros.forEach(function(registro){
+      html +=
+        '<div class="name" title="' +
+          escapeHtml_(registro.ACTIVIDAD) +
+          '">' +
+          escapeHtml_(registro.ID) +
+          ' · ' +
+          escapeHtml_(
+            registro.CRITERIO.replace(/^C\d+\.\s*/, '')
+          ) +
+        '</div>';
+
+      meses.forEach(function(mes){
+        var dentro =
+          mes >= registro.FECHA_INICIO &&
+          mes <= registro.FECHA_TERMINO;
+
+        var inicio = mes === registro.FECHA_INICIO;
+        var termino = mes === registro.FECHA_TERMINO;
+
+        var clase = '';
+
+        if (dentro) clase = 'on';
+        if (inicio || termino) clase = 'edge';
+        if (inicio && termino) clase = 'single';
+
+        html += '<div class="' + clase + '"></div>';
+      });
+    });
+
+    return html + '</div>';
+  }
+
+  function descargarPlanCsv_(){
+    google.script.run
+      .withSuccessHandler(function(respuesta){
+        if (!respuesta || !respuesta.disponible) return;
+
+        var blob = new Blob(
+          ['\uFEFF' + respuesta.contenido],
+          {type:'text/csv;charset=utf-8'}
+        );
+
+        var url = URL.createObjectURL(blob);
+        var enlace = document.createElement('a');
+
+        enlace.href = url;
+        enlace.download = respuesta.archivo;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+
+        setTimeout(function(){
+          URL.revokeObjectURL(url);
+        }, 1000);
+      })
+      .obtenerPlanMejoraCsv();
+  }
+})();
+</script>

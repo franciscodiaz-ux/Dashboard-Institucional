@@ -621,34 +621,29 @@ function mostrarDiscrepanciasComposicion_(discrepancias){
   }
 
   box.hidden = false;
-
-  const primeras = discrepancias.slice(0, 8);
-
   box.innerHTML = `
-    <div class="consistency-note-title">
-      Diferencias detectadas con Matrícula (${discrepancias.length})
-    </div>
-    <div class="consistency-note-text">
-      Para el indicador se mantienen los valores de composicion_matricula.csv.
-      Matrícula se usa únicamente como fuente de contraste para Primer Año.
-    </div>
-    <ul>
-      ${primeras.map(function(d){
-        const jornada = d.jornada ? ` · ${escapeHtml_(d.jornada)}` : '';
-        return `
-          <li>
-            ${escapeHtml_(d.anio)} · ${escapeHtml_(d.sede)}${jornada} ·
-            ${escapeHtml_(d.carrera)}:
-            Composición ${formatearNumero_(d.primerAnoComposicion)} /
-            Matrícula ${formatearNumero_(d.primerAnoMatricula)}
-          </li>`;
-      }).join('')}
-    </ul>
-    ${discrepancias.length > primeras.length
-      ? `<div class="consistency-note-text">
-           Se muestran las primeras ${primeras.length} diferencias.
-         </div>`
-      : ''}
+    <details class="consistency-details">
+      <summary class="consistency-note-title" style="cursor:pointer;">
+        Diferencias detectadas con Matrícula (${discrepancias.length})
+        <span style="font-weight:400; margin-left:6px;">· desplegar / ocultar</span>
+      </summary>
+      <div class="consistency-note-text" style="margin-top:8px;">
+        Para el indicador se mantienen los valores de composicion_matricula.csv.
+        Matrícula se usa únicamente como fuente de contraste para Primer Año.
+      </div>
+      <ul>
+        ${discrepancias.map(function(d){
+          const jornada = d.jornada ? ` · ${escapeHtml_(d.jornada)}` : '';
+          return `
+            <li>
+              ${escapeHtml_(d.anio)} · ${escapeHtml_(d.sede)}${jornada} ·
+              ${escapeHtml_(d.carrera)}:
+              Composición ${formatearNumero_(d.primerAnoComposicion)} /
+              Matrícula ${formatearNumero_(d.primerAnoMatricula)}
+            </li>`;
+        }).join('')}
+      </ul>
+    </details>
   `;
 }
 

@@ -1,3 +1,553 @@
+<style>
+.fin-type{display:inline-flex;align-items:center;gap:5px;margin-left:7px;padding:2px 6px;border-radius:3px;font-size:9px;line-height:1.2;font-weight:700;letter-spacing:.05em;text-transform:uppercase;vertical-align:middle}
+.fin-type.direct{background:var(--navy-soft);color:var(--navy)}
+.fin-type.calc{background:var(--amber-soft);color:var(--amber)}
+.fin-kpi.calc{border-left:4px solid var(--amber)}
+.fin-kpi.direct{border-left:4px solid var(--navy)}
+.fin-note{margin-top:14px;padding:11px 13px;border-left:3px solid var(--amber);background:var(--amber-soft);font-size:12px;color:var(--ink-muted)}
+.fin-section-title{margin:18px 0 8px;font-size:14px;font-weight:700;color:var(--navy)}
+.fin-table-wrap{overflow:auto;margin-top:14px;background:var(--surface);border:1px solid var(--line);border-radius:4px}
+.fin-table{width:100%;border-collapse:collapse;font-size:12px}
+.fin-table th,.fin-table td{padding:8px 10px;border-bottom:1px solid var(--line-soft);text-align:right;white-space:nowrap}
+.fin-table th:first-child,.fin-table td:first-child{text-align:left}
+.fin-table th{background:var(--navy-soft);color:var(--navy);font-size:11px}
+.fin-bar{display:grid;grid-template-columns:minmax(145px,200px) 1fr auto;gap:9px;align-items:center;margin:8px 0}
+.fin-bar-label{font-size:11.5px;color:var(--ink-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fin-bar-track{height:10px;background:var(--line-soft);border-radius:2px;overflow:hidden}
+.fin-bar-fill{height:100%;background:var(--teal)}
+.fin-bar-fill.neg{background:var(--rust)}
+.fin-bar-value{min-width:86px;text-align:right;font-family:'IBM Plex Mono','Consolas',monospace;font-size:11.5px}
+.fin-help{margin-top:4px;font-size:10.5px;color:var(--ink-muted);line-height:1.35}
+.fin-ratio-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}
+@media(max-width:900px){.fin-ratio-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.fin-ratio-grid{grid-template-columns:1fr}.fin-bar{grid-template-columns:120px 1fr auto}}
+</style>
+
 <script>
-/* Indicadores Financieros: reservado para próximas implementaciones. */
+(function(){
+  var cacheFinanciero = null;
+
+  var categoria = CATEGORIES.find(function(c){
+    return c.id === 'financieros';
+  });
+
+  if (categoria) {
+    categoria.tabs = [
+      {id:'fin_resumen', label:'Resumen'},
+      {id:'fin_ingresos', label:'Ingresos'},
+      {id:'fin_gastos', label:'Gastos'},
+      {id:'fin_balance', label:'Balance'},
+      {id:'fin_liquidez', label:'Liquidez'},
+      {id:'fin_endeudamiento', label:'Endeudamiento'},
+      {id:'fin_rentabilidad', label:'Rentabilidad'}
+    ];
+  }
+
+  var renderTabBarOriginalFin_ = renderTabBar;
+
+  renderTabBar = function(){
+    if (currentCategory !== 'financieros') {
+      return renderTabBarOriginalFin_();
+    }
+
+    var bar = document.getElementById('tabBar');
+    var cat = currentCategoryObj();
+
+    bar.style.display = 'flex';
+    bar.innerHTML = cat.tabs.map(function(t){
+      return '<button data-tab="' + t.id + '" class="' +
+        (currentTab === t.id ? 'available active' : 'available') +
+        '">' + t.label + '</button>';
+    }).join('');
+
+    bar.querySelectorAll('button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        currentTab = btn.dataset.tab;
+        cerrarPanelActualizacion_();
+        renderTabBar();
+        renderCurrentTab();
+      });
+    });
+  };
+
+  var renderCurrentTabOriginalFin_ = renderCurrentTab;
+
+  renderCurrentTab = function(){
+    if (currentCategory === 'financieros') {
+      if (!currentTab) {
+        currentTab = 'fin_resumen';
+        renderTabBar();
+      }
+
+      renderFinanciero_();
+      return;
+    }
+
+    return renderCurrentTabOriginalFin_();
+  };
+
+  function renderFinanciero_(){
+    var contenedor = document.getElementById('tabContent');
+
+    contenedor.innerHTML =
+      '<main class="dataset-view">' +
+        '<div class="dataset-status">Cargando indicadores financieros…</div>' +
+      '</main>';
+
+    if (cacheFinanciero) {
+      dibujarFinanciero_(cacheFinanciero);
+      return;
+    }
+
+    google.script.run
+      .withSuccessHandler(function(respuesta){
+        cacheFinanciero = respuesta;
+        dibujarFinanciero_(respuesta);
+      })
+      .withFailureHandler(function(error){
+        contenedor.innerHTML =
+          '<main class="dataset-view">' +
+            '<div class="dataset-status error">Error al cargar indicadores financieros: ' +
+              escapeHtml_(error && error.message ? error.message : error) +
+            '</div>' +
+          '</main>';
+      })
+      .obtenerFinanciero();
+  }
+
+  function dibujarFinanciero_(data){
+    var contenedor = document.getElementById('tabContent');
+
+    contenedor.innerHTML =
+      '<main class="dataset-view">' +
+        '<div class="dataset-view-header"><div>' +
+          '<div class="dataset-view-title-row">' +
+            '<div class="dataset-view-title">Indicadores Financieros</div>' +
+            '<button type="button" class="download-link" id="finDownload">Descargar CSV</button>' +
+          '</div>' +
+          '<div class="dataset-view-subtitle">Datos base y ratios financieros calculados desde el consolidado institucional.</div>' +
+        '</div></div>' +
+
+        '<section class="filter-panel">' +
+          '<div class="filter-panel-title">Período</div>' +
+          '<div class="filter-grid">' +
+            '<label class="filter-field"><span>Año</span><select id="finAno">' +
+              (data.anos || []).slice().reverse().map(function(ano){
+                return '<option value="' + ano + '"' +
+                  (Number(ano) === Number(data.ultimoAno) ? ' selected' : '') +
+                  '>' + ano + '</option>';
+              }).join('') +
+            '</select></label>' +
+          '</div>' +
+        '</section>' +
+
+        '<div id="finBody"></div>' +
+      '</main>';
+
+    document.getElementById('finAno')
+      .addEventListener('change', actualizarVistaFinanciera_);
+
+    document.getElementById('finDownload')
+      .addEventListener('click', descargarFinancieroCsv_);
+
+    actualizarVistaFinanciera_();
+  }
+
+  function registroActual_(){
+    var ano = Number(document.getElementById('finAno').value);
+
+    return (cacheFinanciero.registros || []).find(function(r){
+      return Number(r.ANIO) === ano;
+    });
+  }
+
+  function actualizarVistaFinanciera_(){
+    var r = registroActual_();
+    var cuerpo = document.getElementById('finBody');
+
+    if (!r || !cuerpo) return;
+
+    var html = '';
+
+    switch(currentTab){
+      case 'fin_ingresos':
+        html = ingresos_(r);
+        break;
+      case 'fin_gastos':
+        html = gastos_(r);
+        break;
+      case 'fin_balance':
+        html = balance_(r);
+        break;
+      case 'fin_liquidez':
+        html = liquidez_(r);
+        break;
+      case 'fin_endeudamiento':
+        html = endeudamiento_(r);
+        break;
+      case 'fin_rentabilidad':
+        html = rentabilidad_(r);
+        break;
+      default:
+        html = resumen_(r);
+    }
+
+    if (Number(r.ANIO) === 2026) {
+      html += '<div class="fin-note">' +
+        escapeHtml_(cacheFinanciero.nota2026 || '') +
+      '</div>';
+    }
+
+    cuerpo.innerHTML = html;
+  }
+
+  function etiquetaTipo_(tipo){
+    return tipo === 'calc'
+      ? '<span class="fin-type calc">ƒx Calculado</span>'
+      : '<span class="fin-type direct">Dato</span>';
+  }
+
+  function tarjeta_(titulo, valor, tipo, nota){
+    return '<div class="kpi-card fin-kpi ' + tipo + '">' +
+      '<div class="kpi-label">' +
+        titulo + etiquetaTipo_(tipo) +
+      '</div>' +
+      '<div class="kpi-value">' + valor + '</div>' +
+      '<div class="kpi-note">' + nota + '</div>' +
+    '</div>';
+  }
+
+  function dineroMM_(miles){
+    return '$ ' + (Number(miles || 0) / 1000)
+      .toLocaleString('es-CL', {
+        minimumFractionDigits:1,
+        maximumFractionDigits:1
+      }) + ' MM';
+  }
+
+  function ratio_(valor, decimales){
+    if (valor === null || valor === undefined) return 'N/D';
+
+    return Number(valor).toLocaleString('es-CL', {
+      minimumFractionDigits:decimales || 2,
+      maximumFractionDigits:decimales || 2
+    }) + 'x';
+  }
+
+  function porcentaje_(valor){
+    if (valor === null || valor === undefined) return 'N/D';
+
+    return (Number(valor) * 100).toLocaleString('es-CL', {
+      minimumFractionDigits:1,
+      maximumFractionDigits:1
+    }) + '%';
+  }
+
+  function resumen_(r){
+    return '<div class="kpi-grid">' +
+      tarjeta_(
+        'Ingresos totales',
+        dineroMM_(r.INGRESOS_TOTALES),
+        'direct',
+        'Fuente: financiero.csv'
+      ) +
+      tarjeta_(
+        'Gastos totales',
+        dineroMM_(r.GASTOS_TOTALES),
+        'direct',
+        'Fuente: financiero.csv'
+      ) +
+      tarjeta_(
+        'Resultado',
+        dineroMM_(r.RESULTADO_EJERCICIO),
+        'direct',
+        'Fuente: financiero.csv'
+      ) +
+      tarjeta_(
+        'Margen de excedentes',
+        porcentaje_(r.MARGEN_EXCEDENTES),
+        'calc',
+        'Resultado / Ingresos totales'
+      ) +
+    '</div>' +
+    '<div class="charts-grid">' +
+      '<div class="chart-card">' +
+        '<div class="chart-title">Ingresos y gastos</div>' +
+        '<div class="chart-subtitle">Comparación del período seleccionado</div>' +
+        barras_([
+          ['Ingresos', r.INGRESOS_TOTALES],
+          ['Gastos', r.GASTOS_TOTALES],
+          ['Resultado', r.RESULTADO_EJERCICIO]
+        ]) +
+      '</div>' +
+      '<div class="chart-card">' +
+        '<div class="chart-title">Ratios principales</div>' +
+        '<div class="chart-subtitle">Indicadores calculados</div>' +
+        '<div class="fin-ratio-grid">' +
+          tarjeta_(
+            'Liquidez corriente',
+            ratio_(r.LIQUIDEZ_CORRIENTE, 2),
+            'calc',
+            'Activos corrientes / Pasivos corrientes'
+          ) +
+          tarjeta_(
+            'Deuda / Patrimonio',
+            ratio_(r.DEUDA_PATRIMONIO, 2),
+            'calc',
+            'Pasivos totales / Patrimonio'
+          ) +
+          tarjeta_(
+            'ROE',
+            porcentaje_(r.ROE),
+            'calc',
+            'Resultado / Patrimonio'
+          ) +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function ingresos_(r){
+    return '<div class="kpi-grid">' +
+      tarjeta_('Ingresos totales', dineroMM_(r.INGRESOS_TOTALES), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Ingreso directo CFT', dineroMM_(r.INGRESO_DIRECTO_CFT), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Ingresos OTEC', dineroMM_(r.INGRESOS_OTEC), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Ingresos CEIL', dineroMM_(r.INGRESOS_CEIL), 'direct', 'Fuente: financiero.csv') +
+    '</div>' +
+    '<div class="chart-card chart-card-wide" style="margin-top:14px">' +
+      '<div class="chart-title">Composición de ingresos</div>' +
+      barras_([
+        ['CFT', r.INGRESO_DIRECTO_CFT],
+        ['OTEC', r.INGRESOS_OTEC],
+        ['CEIL', r.INGRESOS_CEIL]
+      ]) +
+    '</div>' +
+    historico_('INGRESOS_TOTALES', 'Ingresos totales');
+  }
+
+  function gastos_(r){
+    var items = [
+      ['Remuneraciones directores', r.GASTO_REMUNERACIONES_DIRECTORES],
+      ['Docentes contratados', r.GASTO_DOCENTES_CONTRATADOS],
+      ['Docentes honorarios', r.GASTO_DOCENTES_HONORARIOS],
+      ['Administrativos', r.GASTO_ADMINISTRATIVOS],
+      ['Otros honorarios', r.GASTO_OTROS_HONORARIOS],
+      ['Arriendos', r.GASTO_ARRIENDOS],
+      ['Servicios básicos', r.GASTO_SERVICIOS_BASICOS],
+      ['Materiales y equipos', r.GASTO_MATERIALES_EQUIPOS],
+      ['Marketing', r.GASTO_MARKETING],
+      ['Depreciación', r.GASTO_DEPRECIACION],
+      ['Administración', r.GASTO_ADMINISTRACION],
+      ['Otros', r.GASTO_OTROS]
+    ];
+
+    return '<div class="kpi-grid">' +
+      tarjeta_('Gastos totales', dineroMM_(r.GASTOS_TOTALES), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Gasto de personal', dineroMM_(r.GASTO_PERSONAL), 'calc', 'Suma de remuneraciones y honorarios') +
+      tarjeta_('Peso gasto personal', porcentaje_(r.PESO_GASTO_PERSONAL), 'calc', 'Gasto personal / Gastos totales') +
+    '</div>' +
+    '<div class="chart-card chart-card-wide" style="margin-top:14px">' +
+      '<div class="chart-title">Composición del gasto</div>' +
+      barras_(items) +
+    '</div>' +
+    historico_('GASTOS_TOTALES', 'Gastos totales');
+  }
+
+  function balance_(r){
+    return '<div class="kpi-grid">' +
+      tarjeta_('Activos corrientes', dineroMM_(r.ACTIVOS_CORRIENTES), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Activos no corrientes', dineroMM_(r.ACTIVOS_NO_CORRIENTES), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Pasivos totales', dineroMM_(r.PASIVOS_TOTALES), 'direct', 'Fuente: financiero.csv') +
+      tarjeta_('Patrimonio', dineroMM_(r.PATRIMONIO), 'direct', 'Fuente: financiero.csv') +
+    '</div>' +
+    '<div class="charts-grid">' +
+      '<div class="chart-card"><div class="chart-title">Activos</div>' +
+        barras_([
+          ['Corrientes', r.ACTIVOS_CORRIENTES],
+          ['No corrientes', r.ACTIVOS_NO_CORRIENTES]
+        ]) +
+      '</div>' +
+      '<div class="chart-card"><div class="chart-title">Pasivos y patrimonio</div>' +
+        barras_([
+          ['Pasivos', r.PASIVOS_TOTALES],
+          ['Patrimonio', r.PATRIMONIO]
+        ]) +
+      '</div>' +
+    '</div>';
+  }
+
+  function liquidez_(r){
+    return '<div class="fin-ratio-grid">' +
+      tarjeta_(
+        'Liquidez corriente',
+        ratio_(r.LIQUIDEZ_CORRIENTE,2),
+        'calc',
+        'Activos corrientes / Pasivos corrientes'
+      ) +
+      tarjeta_(
+        'Razón ácida',
+        ratio_(r.RAZON_ACIDA,2),
+        'calc',
+        '(Activos corrientes − Inventarios) / Pasivos corrientes. Inventarios=0 mientras no exista partida separada.'
+      ) +
+      tarjeta_(
+        'Capital de trabajo',
+        dineroMM_(r.CAPITAL_TRABAJO),
+        'calc',
+        'Activos corrientes − Pasivos corrientes'
+      ) +
+    '</div>' +
+    '<div class="kpi-grid">' +
+      tarjeta_('Activos corrientes', dineroMM_(r.ACTIVOS_CORRIENTES), 'direct', 'Dato base') +
+      tarjeta_('Pasivos corrientes', dineroMM_(r.PASIVOS_CORRIENTES), 'direct', 'Dato base') +
+      tarjeta_('Efectivo y equivalentes', dineroMM_(r.EFECTIVO_EQUIVALENTES), 'direct', 'Dato base') +
+      tarjeta_('Cuentas por cobrar', dineroMM_(r.CUENTAS_POR_COBRAR), 'direct', 'Dato base') +
+    '</div>';
+  }
+
+  function endeudamiento_(r){
+    return '<div class="fin-ratio-grid">' +
+      tarjeta_(
+        'Deuda / Patrimonio',
+        ratio_(r.DEUDA_PATRIMONIO,2),
+        'calc',
+        'Pasivos totales / Patrimonio'
+      ) +
+      tarjeta_('Pasivos totales', dineroMM_(r.PASIVOS_TOTALES), 'direct', 'Dato base') +
+      tarjeta_('Patrimonio', dineroMM_(r.PATRIMONIO), 'direct', 'Dato base') +
+    '</div>' +
+    '<div class="chart-card chart-card-wide" style="margin-top:14px">' +
+      '<div class="chart-title">Estructura de obligaciones</div>' +
+      barras_([
+        ['Pasivos corrientes', r.PASIVOS_CORRIENTES],
+        ['Deuda largo plazo', r.DEUDA_LARGO_PLAZO],
+        ['Pasivos no corrientes bancos', r.PASIVOS_NO_CORRIENTES_BANCOS],
+        ['Provisiones y otros', r.PROVISIONES_OTROS]
+      ]) +
+    '</div>';
+  }
+
+  function rentabilidad_(r){
+    return '<div class="fin-ratio-grid">' +
+      tarjeta_(
+        'ROE',
+        porcentaje_(r.ROE),
+        'calc',
+        'Resultado del ejercicio / Patrimonio'
+      ) +
+      tarjeta_(
+        'ROA',
+        porcentaje_(r.ROA),
+        'calc',
+        'Resultado del ejercicio / Activos totales'
+      ) +
+      tarjeta_(
+        'Margen de excedentes',
+        porcentaje_(r.MARGEN_EXCEDENTES),
+        'calc',
+        'Resultado del ejercicio / Ingresos totales'
+      ) +
+    '</div>' +
+    '<div class="kpi-grid">' +
+      tarjeta_('Resultado', dineroMM_(r.RESULTADO_EJERCICIO), 'direct', 'Dato base') +
+      tarjeta_('Patrimonio', dineroMM_(r.PATRIMONIO), 'direct', 'Dato base') +
+      tarjeta_('Activos totales', dineroMM_(r.ACTIVOS_TOTALES), 'calc', 'Activos corrientes + Activos no corrientes') +
+    '</div>' +
+    historicoRatio_();
+  }
+
+  function barras_(items){
+    var maximo = Math.max.apply(
+      null,
+      items.map(function(x){ return Math.abs(Number(x[1] || 0)); })
+    ) || 1;
+
+    return '<div style="margin-top:12px">' +
+      items.map(function(item){
+        var valor = Number(item[1] || 0);
+        var ancho = Math.max(2, Math.abs(valor) / maximo * 100);
+
+        return '<div class="fin-bar">' +
+          '<div class="fin-bar-label" title="' + escapeHtml_(item[0]) + '">' +
+            escapeHtml_(item[0]) +
+          '</div>' +
+          '<div class="fin-bar-track">' +
+            '<div class="fin-bar-fill ' +
+              (valor < 0 ? 'neg' : '') +
+              '" style="width:' + ancho.toFixed(2) + '%"></div>' +
+          '</div>' +
+          '<div class="fin-bar-value">' + dineroMM_(valor) + '</div>' +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  function historico_(campo, titulo){
+    var filas = (cacheFinanciero.registros || []).map(function(r){
+      return '<tr><td>' + r.ANIO +
+        (Number(r.ANIO) === 2026 ? ' (ene-jul)' : '') +
+        '</td><td>' + dineroMM_(r[campo]) + '</td></tr>';
+    }).join('');
+
+    return '<div class="fin-section-title">Evolución histórica · ' +
+      escapeHtml_(titulo) +
+    '</div>' +
+    '<div class="fin-table-wrap"><table class="fin-table">' +
+      '<thead><tr><th>Año</th><th>' +
+        escapeHtml_(titulo) +
+      '</th></tr></thead><tbody>' +
+        filas +
+      '</tbody></table></div>';
+  }
+
+  function historicoRatio_(){
+    var filas = (cacheFinanciero.registros || []).map(function(r){
+      return '<tr>' +
+        '<td>' + r.ANIO +
+          (Number(r.ANIO) === 2026 ? ' (ene-jul)' : '') +
+        '</td>' +
+        '<td>' + porcentaje_(r.ROE) + '</td>' +
+        '<td>' + porcentaje_(r.ROA) + '</td>' +
+        '<td>' + porcentaje_(r.MARGEN_EXCEDENTES) + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div class="fin-section-title">Evolución de rentabilidad</div>' +
+      '<div class="fin-table-wrap"><table class="fin-table">' +
+        '<thead><tr>' +
+          '<th>Año</th>' +
+          '<th>ROE ' + etiquetaTipo_('calc') + '</th>' +
+          '<th>ROA ' + etiquetaTipo_('calc') + '</th>' +
+          '<th>Margen ' + etiquetaTipo_('calc') + '</th>' +
+        '</tr></thead>' +
+        '<tbody>' + filas + '</tbody>' +
+      '</table></div>';
+  }
+
+  function descargarFinancieroCsv_(){
+    google.script.run
+      .withSuccessHandler(function(respuesta){
+        if (!respuesta || !respuesta.disponible) return;
+
+        var blob = new Blob(
+          ['\uFEFF' + respuesta.contenido],
+          {type:'text/csv;charset=utf-8'}
+        );
+
+        var url = URL.createObjectURL(blob);
+        var enlace = document.createElement('a');
+
+        enlace.href = url;
+        enlace.download = respuesta.archivo;
+        document.body.appendChild(enlace);
+        enlace.click();
+        enlace.remove();
+
+        setTimeout(function(){
+          URL.revokeObjectURL(url);
+        }, 1000);
+      })
+      .obtenerFinancieroCsv();
+  }
+})();
 </script>

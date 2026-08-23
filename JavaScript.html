@@ -14,7 +14,7 @@ const CATEGORIES = [
     ]
   },
   { id:'administrativos', label:'Indicadores Administrativos', tabs:[] },
-  { id:'plan_mejora', label:'Plan de Mejora', tabs:[] },
+  { id:'plan_mejora', label:'Plan de Mejora 2026-2027', tabs:[] },
   { id:'sistema_calidad', label:'Sistema de Calidad', tabs:[] },
   { id:'financieros', label:'Indicadores Financieros', tabs:[] },
   { id:'otros', label:'Otros indicadores', tabs:[] }
@@ -404,5 +404,22 @@ function init(){
 
 document.addEventListener('DOMContentLoaded', init);
 
+
+
+// Indicador de entorno del dashboard. /dev = prueba, /exec = producción.
+(function renderDashboardEnvironment_(){
+  function apply(){
+    var header = document.querySelector('header.top');
+    if (!header || document.getElementById('dashboardEnvBadge')) return;
+    var href = String(window.location.href || '') + ' ' + String(document.referrer || '');
+    var isDev = /\/dev(?:[?#]|$)/i.test(href);
+    var badge = document.createElement('div');
+    badge.id = 'dashboardEnvBadge';
+    badge.style.cssText = 'display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:4px 8px;border-radius:3px;font-size:11px;font-weight:700;letter-spacing:.04em;border:1px solid rgba(255,255,255,.45);color:#fff;background:' + (isDev ? '#9a6700' : '#176b54');
+    badge.textContent = isDev ? 'VERSIÓN DE PRUEBA · /dev' : 'PRODUCCIÓN · v2026.08.22 · /exec';
+    header.appendChild(badge);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply); else apply();
+})();
 
 </script>
