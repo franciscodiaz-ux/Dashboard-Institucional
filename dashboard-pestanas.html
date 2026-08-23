@@ -161,6 +161,44 @@
     max-width:1180px; margin:50px auto 0 auto; padding:16px 28px 0 28px; border-top:1px solid var(--line);
     font-size:12px; color:var(--ink-muted);
   }
+
+  /* Sistema de Aseguramiento Interno de la Calidad */
+  .sac-wrap{max-width:1180px;margin:24px auto 0;padding:0 28px;}
+  .sac-intro{display:flex;justify-content:space-between;gap:24px;align-items:flex-end;margin-bottom:18px;}
+  .sac-intro h2{margin:0 0 6px;font-size:25px;color:var(--navy);font-weight:600;}
+  .sac-intro p{margin:0;color:var(--ink-muted);max-width:760px;line-height:1.5;font-size:14px;}
+  .sac-badge{font-size:11px;text-transform:uppercase;letter-spacing:.08em;border:1px solid var(--line);padding:6px 9px;background:var(--surface);white-space:nowrap;}
+  .sac-cycle{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:16px 0 22px;}
+  .sac-step{position:relative;background:var(--surface);border:1px solid var(--line);padding:13px 12px;min-height:72px;}
+  .sac-step:not(:last-child):after{content:'›';position:absolute;right:-9px;top:22px;z-index:2;color:var(--teal);font-size:22px;font-weight:600;}
+  .sac-step small{display:block;color:var(--ink-muted);font-size:10px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+  .sac-step strong{font-size:13px;color:var(--navy);}
+  .sac-section{background:var(--surface);border:1px solid var(--line);padding:18px 20px;margin-top:14px;}
+  .sac-section-head{display:flex;justify-content:space-between;align-items:baseline;gap:18px;margin-bottom:14px;}
+  .sac-section-head h3{margin:0;font-size:16px;color:var(--navy);font-weight:600;}
+  .sac-section-head span{font-size:11px;color:var(--ink-muted);}
+  .sac-lines{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+  .sac-line{border:1px solid var(--line);padding:14px;background:var(--bg);cursor:pointer;transition:.15s;}
+  .sac-line:hover{border-color:var(--teal);background:var(--teal-soft);}
+  .sac-line .n{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--teal);margin-bottom:7px;}
+  .sac-line strong{display:block;font-size:13px;line-height:1.35;margin-bottom:7px;}
+  .sac-line p{margin:0;font-size:11.5px;color:var(--ink-muted);line-height:1.4;}
+  .sac-process-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .sac-process-col{border-top:3px solid var(--navy);padding-top:8px;}
+  .sac-process-col h4{margin:0 0 8px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-muted);}
+  .sac-process{border:1px solid var(--line);padding:10px 11px;margin-bottom:7px;background:var(--bg);font-size:12px;line-height:1.35;}
+  .sac-trace{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+  .sac-trace span{border:1px solid var(--line);background:var(--bg);padding:7px 9px;font-size:11px;}
+  .sac-trace b{color:var(--teal);font-weight:600;}
+  .sac-note{margin-top:14px;padding:12px 14px;border-left:3px solid var(--amber);background:var(--amber-soft);font-size:12px;line-height:1.5;color:var(--ink-muted);}
+  .sac-detail{margin-top:10px;border-top:1px solid var(--line-soft);padding-top:12px;display:none;}
+  .sac-detail.open{display:block;}
+  .sac-detail-grid{display:grid;grid-template-columns:1.2fr 1.2fr .8fr;gap:12px;}
+  .sac-detail-item small{display:block;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-muted);font-size:9.5px;margin-bottom:4px;}
+  .sac-detail-item div{font-size:12px;line-height:1.45;}
+  @media(max-width:800px){.sac-lines,.sac-process-grid{grid-template-columns:1fr 1fr}.sac-cycle{grid-template-columns:1fr}.sac-step:not(:last-child):after{display:none}.sac-detail-grid{grid-template-columns:1fr}.sac-intro{display:block}.sac-badge{display:inline-block;margin-top:10px}}
+  @media(max-width:520px){.sac-lines,.sac-process-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -357,7 +395,7 @@ const CATEGORIES = [
   },
   { id:'administrativos', label:'Indicadores Administrativos', tabs:[] },
   { id:'plan_mejora', label:'Plan de Mejora', tabs:[] },
-  { id:'sistema_calidad', label:'Sistema de Calidad', tabs:[] },
+  { id:'sistema_calidad', label:'Sistema de Calidad', tabs:[{id:'sac_general',label:'Sistema de Aseguramiento'}] },
   { id:'financieros', label:'Indicadores Financieros', tabs:[] },
   { id:'otros', label:'Otros indicadores', tabs:[] }
 ];
@@ -1291,7 +1329,8 @@ function renderCurrentTab(){
     document.getElementById('tabContent').innerHTML = `<div class="category-empty">Todavía no hay indicadores cargados en "${cat.label}". Se irán agregando aquí a medida que definamos cuáles corresponden.</div>`;
     return;
   }
-  if(currentTab==='matricula') renderSingleTab('matricula');
+  if(currentTab==='sac_general') renderSistemaCalidad();
+  else if(currentTab==='matricula') renderSingleTab('matricula');
   else if(currentTab==='oferta') renderSingleTab('oferta');
   else if(currentTab==='retencion' || currentTab==='egreso' || currentTab==='titulacion' || currentTab==='dotacion' || currentTab==='jce') renderFichaTab(currentTab);
   else renderComparisonTab();
