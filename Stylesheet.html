@@ -967,5 +967,27 @@
     .sac-note{grid-template-columns:1fr;}
   }
 
+
+  /* Resultados SIGA */
+  .siga-filter-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
+  .siga-kpi-grid{grid-template-columns:repeat(5,minmax(0,1fr));}
+  .siga-bar-chart{max-height:330px;overflow:auto;padding-right:4px;}
+  .siga-status-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}
+  .siga-status-card{padding:15px 12px;border:1px solid var(--line);border-top:3px solid var(--teal);border-radius:3px;background:var(--surface);text-align:center;}
+  .siga-status-card.bad{border-top-color:var(--rust);}
+  .siga-status-card.pending{border-top-color:var(--amber);}
+  .siga-status-value{font-family:'IBM Plex Mono','Consolas',monospace;font-size:25px;color:var(--navy);}
+  .siga-status-label{margin-top:4px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-muted);}
+  .siga-status-pct{margin-top:3px;font-size:11px;color:var(--ink-muted);}
+  .siga-table-wrap{margin-top:4px;overflow:auto;max-height:480px;border:1px solid var(--line);border-radius:3px;}
+  .siga-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .siga-table th{position:sticky;top:0;z-index:1;padding:9px 10px;background:var(--line-soft);border-bottom:1px solid var(--line);text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-muted);}
+  .siga-table td{padding:8px 10px;border-bottom:1px solid var(--line-soft);color:var(--ink);vertical-align:top;}
+  .siga-table td.num,.siga-table th.num{text-align:right;font-family:'IBM Plex Mono','Consolas',monospace;}
+  .siga-table tbody tr:hover{background:var(--teal-soft);}
+  .siga-table-empty{padding:24px !important;text-align:center;color:var(--ink-muted) !important;font-style:italic;}
+  @media (max-width:980px){.siga-filter-grid,.siga-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+  @media (max-width:620px){.siga-filter-grid,.siga-kpi-grid,.siga-status-grid{grid-template-columns:1fr;}}
+
 </style>
 

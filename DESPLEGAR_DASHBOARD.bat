@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "COMMIT_MSG=Restaura deteccion dev-produccion para probar comportamiento de clasp"
+set "COMMIT_MSG=Implementa Resultados SIGA 2026-1 en dashboard institucional"
 
 echo ============================================
 echo   CFT Laplace - Despliegue Dashboard

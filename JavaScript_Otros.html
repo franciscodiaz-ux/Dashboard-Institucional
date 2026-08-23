@@ -1,3 +1,309 @@
 <script>
-/* Otros Indicadores: reservado para próximas implementaciones. */
+/**
+ * Resultados SIGA · Seguimiento Académico
+ * Fuente: SIGA_ESI_2026_1.
+ * Esta vista contiene exclusivamente información agregada.
+ * No se publican nombres, RUT ni resultados individuales.
+ */
+
+const SIGA_DATA = {"periodo":"2026-1","cursos":[{"periodo":"2026-1","idCurso":"COL_ADM1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"1","nivel":"I","jornada":"Vespertina","matriculados":8,"evaluados":4,"cobertura":50.0,"promedio":6.13,"registros":20,"aprobados":20,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":16,"evaluados":10,"cobertura":62.5,"promedio":6.14,"registros":60,"aprobados":57,"reprobados":3,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":19,"evaluados":13,"cobertura":68.4,"promedio":6.39,"registros":78,"aprobados":78,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","nivel":"I","jornada":"Vespertina","matriculados":34,"evaluados":21,"cobertura":61.8,"promedio":6.46,"registros":105,"aprobados":105,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":25,"evaluados":18,"cobertura":72.0,"promedio":6.5,"registros":108,"aprobados":108,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","nivel":"I","jornada":"Vespertina","matriculados":32,"evaluados":14,"cobertura":43.8,"promedio":6.17,"registros":70,"aprobados":69,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":23,"evaluados":18,"cobertura":78.3,"promedio":6.18,"registros":108,"aprobados":108,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_VET1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"1","nivel":"I","jornada":"Diurna","matriculados":16,"evaluados":9,"cobertura":56.2,"promedio":5.73,"registros":45,"aprobados":43,"reprobados":1,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","nivel":"III","jornada":"Diurna","matriculados":25,"evaluados":20,"cobertura":80.0,"promedio":5.79,"registros":120,"aprobados":101,"reprobados":1,"pendientes":18},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":12,"evaluados":8,"cobertura":66.7,"promedio":6.41,"registros":48,"aprobados":47,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_PARV1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","nivel":"I","jornada":"Diurna","matriculados":17,"evaluados":15,"cobertura":88.2,"promedio":5.91,"registros":75,"aprobados":66,"reprobados":9,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","nivel":"III","jornada":"Diurna","matriculados":11,"evaluados":11,"cobertura":100.0,"promedio":6.65,"registros":66,"aprobados":64,"reprobados":0,"pendientes":2},{"periodo":"2026-1","idCurso":"LA_ELEC1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"1","nivel":"I","jornada":"Vespertina","matriculados":12,"evaluados":7,"cobertura":58.3,"promedio":6.73,"registros":35,"aprobados":35,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":7,"evaluados":2,"cobertura":28.6,"promedio":5.94,"registros":12,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","nivel":"I","jornada":"Diurna","matriculados":17,"evaluados":10,"cobertura":58.8,"promedio":5.88,"registros":50,"aprobados":50,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","nivel":"I","jornada":"Vespertina","matriculados":9,"evaluados":5,"cobertura":55.6,"promedio":6.29,"registros":25,"aprobados":25,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","nivel":"III","jornada":"Diurna","matriculados":12,"evaluados":8,"cobertura":66.7,"promedio":6.21,"registros":48,"aprobados":47,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","nivel":"III","jornada":"Vespertina","matriculados":12,"evaluados":12,"cobertura":100.0,"promedio":6.22,"registros":72,"aprobados":72,"reprobados":0,"pendientes":0}],"asignaturas":[{"periodo":"2026-1","idCurso":"COL_ENF1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Técnicas de Asepsia y Antisepsia","evaluaciones":14,"promedio":5.89,"aprobados":14,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Técnicas de Primeros Auxilios","evaluaciones":14,"promedio":6.41,"aprobados":14,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Administración de Medicamentos y Vacunas","evaluaciones":14,"promedio":6.19,"aprobados":14,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Atención y Cuidados del Adulto Mayor","evaluaciones":14,"promedio":5.94,"aprobados":14,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":14,"promedio":6.42,"aprobados":13,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"COL_ADM1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"1","jornada":"Vespertina","asignatura":"Manejo y Control de Presupuesto","evaluaciones":4,"promedio":5.93,"aprobados":4,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"1","jornada":"Vespertina","asignatura":"Atención de Clientes y Proveedores","evaluaciones":4,"promedio":6.2,"aprobados":4,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"1","jornada":"Vespertina","asignatura":"Aplicaciones Computacionales en Administración","evaluaciones":4,"promedio":6.05,"aprobados":4,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"1","jornada":"Vespertina","asignatura":"Procesos Documentales","evaluaciones":4,"promedio":6.28,"aprobados":4,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"1","jornada":"Vespertina","asignatura":"Formación para el Trabajo","evaluaciones":4,"promedio":6.2,"aprobados":4,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","jornada":"Vespertina","asignatura":"Administración Financiera","evaluaciones":10,"promedio":5.75,"aprobados":9,"reprobados":1,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","jornada":"Vespertina","asignatura":"Estados Contables y Financieros","evaluaciones":10,"promedio":5.62,"aprobados":9,"reprobados":1,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","jornada":"Vespertina","asignatura":"Taller de Sistemas Informáticos de Gestión Empresarial","evaluaciones":10,"promedio":6.73,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","jornada":"Vespertina","asignatura":"Estadísticas Aplicadas","evaluaciones":10,"promedio":5.74,"aprobados":9,"reprobados":1,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","jornada":"Vespertina","asignatura":"Logística y Operaciones","evaluaciones":10,"promedio":6.14,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ADM3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Administración de Empresas","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo","evaluaciones":10,"promedio":6.86,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Vespertina","asignatura":"Actividades Educativas","evaluaciones":21,"promedio":6.24,"aprobados":21,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Vespertina","asignatura":"Expresión Plástica","evaluaciones":21,"promedio":6.52,"aprobados":21,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Vespertina","asignatura":"Actividades Recreativas","evaluaciones":21,"promedio":6.61,"aprobados":21,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Vespertina","asignatura":"Prevención y Primeros Auxilios","evaluaciones":21,"promedio":6.17,"aprobados":21,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV1V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Vespertina","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":21,"promedio":6.76,"aprobados":21,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Vespertina","asignatura":"Bases Curriculares Segundo Ciclo","evaluaciones":18,"promedio":6.12,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Vespertina","asignatura":"Psicomotricidad Infantil","evaluaciones":18,"promedio":6.42,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Vespertina","asignatura":"Expresión Musical","evaluaciones":18,"promedio":6.43,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Vespertina","asignatura":"Diseño y Elaboración de Material Didáctico","evaluaciones":18,"promedio":6.6,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Vespertina","asignatura":"Salud y Cuidado del Niño Segundo Ciclo","evaluaciones":18,"promedio":6.55,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_PARV3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":18,"promedio":6.91,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Atención Temprana y Psicomotricidad","evaluaciones":13,"promedio":6.29,"aprobados":13,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Neurociencias y Trastornos del Desarrollo","evaluaciones":13,"promedio":6.36,"aprobados":13,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Inclusión y Atención a la Diversidad","evaluaciones":13,"promedio":6.03,"aprobados":13,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Necesidades Educativas Transitorias","evaluaciones":13,"promedio":6.55,"aprobados":13,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Necesidades Educativas Permanentes","evaluaciones":13,"promedio":6.28,"aprobados":13,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_DIF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":13,"promedio":6.82,"aprobados":13,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Diurna","asignatura":"Actividades Educativas","evaluaciones":15,"promedio":5.49,"aprobados":13,"reprobados":2,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Diurna","asignatura":"Expresión Plástica","evaluaciones":15,"promedio":5.96,"aprobados":13,"reprobados":2,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Diurna","asignatura":"Actividades Recreativas","evaluaciones":15,"promedio":5.95,"aprobados":13,"reprobados":2,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Diurna","asignatura":"Prevención y Primeros Auxilios","evaluaciones":15,"promedio":6.26,"aprobados":14,"reprobados":1,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"1","jornada":"Diurna","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":15,"promedio":5.87,"aprobados":13,"reprobados":2,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Diurna","asignatura":"Bases Curriculares Segundo Ciclo","evaluaciones":11,"promedio":6.54,"aprobados":11,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Diurna","asignatura":"Psicomotricidad Infantil","evaluaciones":11,"promedio":6.6,"aprobados":11,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Diurna","asignatura":"Expresión Musical","evaluaciones":11,"promedio":6.33,"aprobados":11,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Diurna","asignatura":"Diseño y Elaboración de Material Didáctico","evaluaciones":11,"promedio":6.68,"aprobados":11,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Diurna","asignatura":"Salud y Cuidado del Niño Segundo Ciclo","evaluaciones":11,"promedio":6.9,"aprobados":11,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_PARV3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación de Párvulos","semestre":"3","jornada":"Diurna","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":11,"promedio":6.91,"aprobados":9,"reprobados":0,"pendientes":2},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Atención Temprana y Psicomotricidad","evaluaciones":8,"promedio":6.31,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Neurociencias y Trastornos del Desarrollo","evaluaciones":8,"promedio":6.34,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Inclusión y Atención a la Diversidad","evaluaciones":8,"promedio":5.96,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Necesidades Educativas Transitorias","evaluaciones":8,"promedio":6.54,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Necesidades Educativas Permanentes","evaluaciones":8,"promedio":6.65,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_DIF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Educación Diferencial","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":8,"promedio":6.71,"aprobados":7,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_ELEC1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"1","jornada":"Vespertina","asignatura":"Instalaciones Eléctricas en Baja Tensión","evaluaciones":7,"promedio":6.87,"aprobados":7,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"1","jornada":"Vespertina","asignatura":"Interpretación de Planos Eléctricos","evaluaciones":7,"promedio":6.5,"aprobados":7,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"1","jornada":"Vespertina","asignatura":"Montaje y Canalización Eléctrica","evaluaciones":7,"promedio":6.79,"aprobados":7,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"1","jornada":"Vespertina","asignatura":"Prevención de Riesgos Eléctricos","evaluaciones":7,"promedio":6.86,"aprobados":7,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"1","jornada":"Vespertina","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":7,"promedio":6.64,"aprobados":7,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","jornada":"Vespertina","asignatura":"Protecciones Eléctricas","evaluaciones":2,"promedio":6.55,"aprobados":2,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","jornada":"Vespertina","asignatura":"Accionamiento Eléctrico","evaluaciones":2,"promedio":5.8,"aprobados":2,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","jornada":"Vespertina","asignatura":"Electrónica de Potencia","evaluaciones":2,"promedio":5.65,"aprobados":2,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","jornada":"Vespertina","asignatura":"Microcontroladores y Sensores","evaluaciones":2,"promedio":5.7,"aprobados":2,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","jornada":"Vespertina","asignatura":"Máquinas Eléctricas","evaluaciones":2,"promedio":5.25,"aprobados":2,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ELEC3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Electricidad y Electrónica Industrial","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":2,"promedio":6.7,"aprobados":2,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Diurna","asignatura":"Técnicas de Asepsia y Antisepsia","evaluaciones":10,"promedio":5.73,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Diurna","asignatura":"Técnicas de Primeros Auxilios","evaluaciones":10,"promedio":6.08,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Diurna","asignatura":"Administración de Medicamentos y Vacunas","evaluaciones":10,"promedio":5.43,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Diurna","asignatura":"Atención y Cuidados del Adulto Mayor","evaluaciones":10,"promedio":5.64,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Diurna","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":10,"promedio":6.53,"aprobados":10,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Diurna","asignatura":"Técnicas de Enfermería II","evaluaciones":8,"promedio":5.92,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Diurna","asignatura":"Atención y Cuidados de Enfermería Médico Quirúrgico","evaluaciones":8,"promedio":5.75,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Diurna","asignatura":"Atención y Cuidados de Enfermería de Urgencia","evaluaciones":8,"promedio":6.11,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Diurna","asignatura":"Atención y Cuidados de Enfermería Pediátrica","evaluaciones":8,"promedio":6.31,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Diurna","asignatura":"Práctica Clínica I","evaluaciones":8,"promedio":6.25,"aprobados":8,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Diurna","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":8,"promedio":7.0,"aprobados":7,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_ENF1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Técnicas de Asepsia y Antisepsia","evaluaciones":5,"promedio":6.2,"aprobados":5,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Técnicas de Primeros Auxilios","evaluaciones":5,"promedio":6.2,"aprobados":5,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Administración de Medicamentos y Vacunas","evaluaciones":5,"promedio":6.2,"aprobados":5,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Atención y Cuidados del Adulto Mayor","evaluaciones":5,"promedio":6.12,"aprobados":5,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF1V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"1","jornada":"Vespertina","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":5,"promedio":6.74,"aprobados":5,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Técnicas de Enfermería II","evaluaciones":12,"promedio":6.08,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Atención y Cuidados de Enfermería Médico Quirúrgico","evaluaciones":12,"promedio":5.77,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Atención y Cuidados de Enfermería de Urgencia","evaluaciones":12,"promedio":6.23,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Atención y Cuidados de Enfermería Pediátrica","evaluaciones":12,"promedio":6.17,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Práctica Clínica I","evaluaciones":12,"promedio":6.08,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_ENF3V","sede":"Los Andes","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":12,"promedio":6.95,"aprobados":12,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_VET1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"1","jornada":"Diurna","asignatura":"Anatomía Funcional de Animales Domésticos","evaluaciones":9,"promedio":5.09,"aprobados":8,"reprobados":1,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_VET1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"1","jornada":"Diurna","asignatura":"Técnicas de Enfermería Clínica","evaluaciones":9,"promedio":5.23,"aprobados":9,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_VET1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"1","jornada":"Diurna","asignatura":"Alimentación de Animales Domésticos","evaluaciones":9,"promedio":5.83,"aprobados":9,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_VET1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"1","jornada":"Diurna","asignatura":"Cuidados y Estética de Mascotas","evaluaciones":9,"promedio":5.96,"aprobados":9,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"LA_VET1D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"1","jornada":"Diurna","asignatura":"Formación para el Trabajo (Sello Institucional)","evaluaciones":9,"promedio":6.65,"aprobados":8,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","jornada":"Diurna","asignatura":"Alimentación y Nutrición Animal","evaluaciones":20,"promedio":5.91,"aprobados":18,"reprobados":0,"pendientes":2},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","jornada":"Diurna","asignatura":"Reproducción Animal","evaluaciones":20,"promedio":5.41,"aprobados":16,"reprobados":1,"pendientes":3},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","jornada":"Diurna","asignatura":"Producción Pecuaria","evaluaciones":20,"promedio":5.57,"aprobados":17,"reprobados":0,"pendientes":3},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","jornada":"Diurna","asignatura":"Procedimientos Terapéuticos","evaluaciones":20,"promedio":5.82,"aprobados":19,"reprobados":0,"pendientes":1},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","jornada":"Diurna","asignatura":"Zoonosis","evaluaciones":20,"promedio":5.33,"aprobados":17,"reprobados":0,"pendientes":3},{"periodo":"2026-1","idCurso":"LA_VET3D","sede":"Los Andes","carrera":"Técnico de Nivel Superior Veterinario","semestre":"3","jornada":"Diurna","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":20,"promedio":6.89,"aprobados":14,"reprobados":0,"pendientes":6},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Técnicas de Enfermería II","evaluaciones":18,"promedio":6.36,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Atención y Cuidados de Enfermería Médico Quirúrgico","evaluaciones":18,"promedio":5.97,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Atención y Cuidados de Enfermería de Urgencia","evaluaciones":18,"promedio":5.67,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Atención y Cuidados de Enfermería Pediátrica","evaluaciones":18,"promedio":6.38,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Práctica Clínica I","evaluaciones":18,"promedio":5.89,"aprobados":18,"reprobados":0,"pendientes":0},{"periodo":"2026-1","idCurso":"COL_ENF3V","sede":"Colina","carrera":"Técnico de Nivel Superior en Enfermería","semestre":"3","jornada":"Vespertina","asignatura":"Liderazgo y Trabajo en Equipo (Sello Institucional)","evaluaciones":18,"promedio":6.8,"aprobados":18,"reprobados":0,"pendientes":0}]};
+
+function renderResultadosSiga_(){
+  const content = document.getElementById('tabContent');
+  if (!content) return;
+
+  content.innerHTML = `
+    <main class="dataset-view siga-view">
+      <div class="dataset-view-header">
+        <div>
+          <div class="dataset-view-title-row">
+            <div class="dataset-view-title">Resultados SIGA · Seguimiento Académico</div>
+          </div>
+          <div class="dataset-view-subtitle">
+            Seguimiento agregado del semestre ${escapeHtml_(SIGA_DATA.periodo)} · Sin datos personales de estudiantes.
+          </div>
+        </div>
+      </div>
+
+      <section class="filter-panel">
+        <div class="filter-panel-title">Filtros</div>
+        <div class="filter-grid siga-filter-grid">
+          ${sigaSelectHtml_('sigaSede','Sede')}
+          ${sigaSelectHtml_('sigaCarrera','Carrera')}
+          ${sigaSelectHtml_('sigaJornada','Jornada')}
+          ${sigaSelectHtml_('sigaSemestre','Semestre')}
+          ${sigaSelectHtml_('sigaCurso','Curso')}
+        </div>
+      </section>
+
+      <section class="kpi-grid siga-kpi-grid">
+        ${sigaKpiHtml_('sigaKpiMatriculados','Matriculados')}
+        ${sigaKpiHtml_('sigaKpiEvaluados','Evaluados')}
+        ${sigaKpiHtml_('sigaKpiCobertura','Cobertura SIGA')}
+        ${sigaKpiHtml_('sigaKpiPromedio','Promedio final')}
+        ${sigaKpiHtml_('sigaKpiAprobacion','Aprobación')}
+      </section>
+
+      <section class="charts-grid">
+        <article class="chart-card">
+          <div class="chart-title">Cobertura de evaluación por curso</div>
+          <div class="chart-subtitle">Estudiantes con resultados SIGA respecto de la matrícula vigente.</div>
+          <div id="sigaCoberturaCursos" class="bar-chart siga-bar-chart"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Promedio final por carrera</div>
+          <div class="chart-subtitle">Promedio ponderado por registros de asignatura.</div>
+          <div id="sigaPromedioCarreras" class="bar-chart siga-bar-chart"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Promedio final por sede</div>
+          <div class="chart-subtitle">Comparación del desempeño académico agregado.</div>
+          <div id="sigaPromedioSedes" class="bar-chart"></div>
+        </article>
+
+        <article class="chart-card">
+          <div class="chart-title">Situación académica</div>
+          <div class="chart-subtitle">Distribución de resultados de asignatura.</div>
+          <div id="sigaSituacion" class="siga-status-grid"></div>
+        </article>
+
+        <article class="chart-card chart-card-wide">
+          <div class="chart-title">Detalle por asignatura</div>
+          <div class="chart-subtitle">Resultados agregados según los filtros seleccionados.</div>
+          <div class="siga-table-wrap">
+            <table class="siga-table">
+              <thead>
+                <tr>
+                  <th>Curso</th>
+                  <th>Asignatura</th>
+                  <th>Evaluaciones</th>
+                  <th>Promedio</th>
+                  <th>Aprobados</th>
+                  <th>Reprobados</th>
+                  <th>Pendientes</th>
+                </tr>
+              </thead>
+              <tbody id="sigaDetalleAsignaturas"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <div class="dataset-status">
+        Fuente institucional: SIGA/ESI ${escapeHtml_(SIGA_DATA.periodo)}. La vista presenta únicamente resultados agregados.
+      </div>
+    </main>
+  `;
+
+  sigaConfigurarFiltros_();
+  sigaAplicarFiltros_();
+}
+
+function sigaSelectHtml_(id, label){
+  return `
+    <label class="filter-field">
+      <span>${label}</span>
+      <select id="${id}"><option value="">Todos</option></select>
+    </label>`;
+}
+
+function sigaKpiHtml_(id, label){
+  return `
+    <article class="kpi-card">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value" id="${id}">—</div>
+      <div class="kpi-note" id="${id}Nota"></div>
+    </article>`;
+}
+
+function sigaUnicos_(valores){
+  return [...new Set((valores || []).filter(Boolean))]
+    .sort((a,b) => String(a).localeCompare(String(b),'es',{numeric:true}));
+}
+
+function sigaLlenarSelect_(id, valores, etiqueta){
+  const select = document.getElementById(id);
+  if (!select) return;
+  const actual = select.value;
+  select.innerHTML = `<option value="">${etiqueta}</option>` +
+    sigaUnicos_(valores).map(v => `<option value="${escapeHtml_(v)}">${escapeHtml_(v)}</option>`).join('');
+  if ([...select.options].some(o => o.value === actual)) select.value = actual;
+}
+
+function sigaConfigurarFiltros_(){
+  const cursos = SIGA_DATA.cursos || [];
+  sigaLlenarSelect_('sigaSede', cursos.map(r=>r.sede), 'Todas las sedes');
+  sigaLlenarSelect_('sigaCarrera', cursos.map(r=>r.carrera), 'Todas las carreras');
+  sigaLlenarSelect_('sigaJornada', cursos.map(r=>r.jornada), 'Todas las jornadas');
+  sigaLlenarSelect_('sigaSemestre', cursos.map(r=>r.semestre), 'Todos los semestres');
+  sigaLlenarSelect_('sigaCurso', cursos.map(r=>r.idCurso), 'Todos los cursos');
+
+  ['sigaSede','sigaCarrera','sigaJornada','sigaSemestre','sigaCurso'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', sigaAplicarFiltros_);
+  });
+}
+
+function sigaFiltrosActuales_(){
+  return {
+    sede: obtenerValorFiltro_('sigaSede'),
+    carrera: obtenerValorFiltro_('sigaCarrera'),
+    jornada: obtenerValorFiltro_('sigaJornada'),
+    semestre: obtenerValorFiltro_('sigaSemestre'),
+    idCurso: obtenerValorFiltro_('sigaCurso')
+  };
+}
+
+function sigaCoincide_(r, f){
+  return (!f.sede || r.sede === f.sede) &&
+    (!f.carrera || r.carrera === f.carrera) &&
+    (!f.jornada || r.jornada === f.jornada) &&
+    (!f.semestre || String(r.semestre) === String(f.semestre)) &&
+    (!f.idCurso || r.idCurso === f.idCurso);
+}
+
+function sigaAplicarFiltros_(){
+  const f = sigaFiltrosActuales_();
+  const cursos = (SIGA_DATA.cursos || []).filter(r => sigaCoincide_(r,f));
+  const asignaturas = (SIGA_DATA.asignaturas || []).filter(r => sigaCoincide_(r,f));
+
+  const matriculados = cursos.reduce((s,r)=>s+r.matriculados,0);
+  const evaluados = cursos.reduce((s,r)=>s+r.evaluados,0);
+  const cobertura = matriculados ? evaluados / matriculados * 100 : 0;
+  const registros = cursos.reduce((s,r)=>s+r.registros,0);
+  const promedio = registros
+    ? cursos.reduce((s,r)=>s+((r.promedio || 0)*r.registros),0) / registros
+    : 0;
+  const aprobados = cursos.reduce((s,r)=>s+r.aprobados,0);
+  const reprobados = cursos.reduce((s,r)=>s+r.reprobados,0);
+  const pendientes = cursos.reduce((s,r)=>s+r.pendientes,0);
+  const totalSituacion = aprobados + reprobados + pendientes;
+  const aprobacion = totalSituacion ? aprobados / totalSituacion * 100 : 0;
+
+  asignarTexto_('sigaKpiMatriculados', formatearNumero_(matriculados));
+  asignarTexto_('sigaKpiMatriculadosNota', `${cursos.length} curso${cursos.length===1?'':'s'} seleccionado${cursos.length===1?'':'s'}`);
+  asignarTexto_('sigaKpiEvaluados', formatearNumero_(evaluados));
+  asignarTexto_('sigaKpiEvaluadosNota', 'Estudiantes con resultados publicados');
+  asignarTexto_('sigaKpiCobertura', `${cobertura.toFixed(1).replace('.',',')}%`);
+  asignarTexto_('sigaKpiCoberturaNota', `${formatearNumero_(evaluados)} de ${formatearNumero_(matriculados)} estudiantes`);
+  asignarTexto_('sigaKpiPromedio', promedio ? promedio.toFixed(2).replace('.',',') : '—');
+  asignarTexto_('sigaKpiPromedioNota', `${formatearNumero_(registros)} resultados de asignatura`);
+  asignarTexto_('sigaKpiAprobacion', `${aprobacion.toFixed(1).replace('.',',')}%`);
+  asignarTexto_('sigaKpiAprobacionNota', `${formatearNumero_(aprobados)} aprobados · ${formatearNumero_(reprobados)} reprobados`);
+
+  sigaDibujarCobertura_(cursos);
+  sigaDibujarPromediosCarrera_(cursos);
+  sigaDibujarPromediosSede_(cursos);
+  sigaDibujarSituacion_(aprobados,reprobados,pendientes);
+  sigaDibujarTabla_(asignaturas);
+}
+
+function sigaDibujarCobertura_(cursos){
+  const datos = cursos
+    .map(r => ({etiqueta:r.idCurso, valor:r.cobertura}))
+    .sort((a,b)=>b.valor-a.valor);
+
+  sigaDibujarBarrasPorcentaje_('sigaCoberturaCursos',datos);
+}
+
+function sigaAgruparPromedio_(cursos,campo){
+  const grupos = {};
+  cursos.forEach(r => {
+    const clave = r[campo] || 'Sin información';
+    if (!grupos[clave]) grupos[clave] = {suma:0,peso:0};
+    grupos[clave].suma += (r.promedio || 0) * r.registros;
+    grupos[clave].peso += r.registros;
+  });
+
+  return Object.entries(grupos)
+    .map(([etiqueta,g]) => ({
+      etiqueta: sigaEtiquetaCorta_(etiqueta),
+      valor: g.peso ? g.suma/g.peso : 0
+    }))
+    .sort((a,b)=>b.valor-a.valor);
+}
+
+function sigaDibujarPromediosCarrera_(cursos){
+  sigaDibujarBarrasNota_('sigaPromedioCarreras',sigaAgruparPromedio_(cursos,'carrera'));
+}
+
+function sigaDibujarPromediosSede_(cursos){
+  sigaDibujarBarrasNota_('sigaPromedioSedes',sigaAgruparPromedio_(cursos,'sede'));
+}
+
+function sigaEtiquetaCorta_(texto){
+  return String(texto)
+    .replace(/^Técnico de Nivel Superior en /i,'')
+    .replace(/^Técnico de Nivel Superior /i,'');
+}
+
+function sigaDibujarBarrasPorcentaje_(id,datos){
+  const c=document.getElementById(id);
+  if(!c) return;
+  if(!datos.length){ c.innerHTML='<div class="chart-empty">No hay datos para la selección actual.</div>'; return; }
+  c.innerHTML=datos.map(item=>`
+    <div class="bar-row">
+      <div class="bar-label" title="${escapeHtml_(item.etiqueta)}">${escapeHtml_(item.etiqueta)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,Math.min(100,item.valor)).toFixed(1)}%"></div></div>
+      <div class="bar-value">${item.valor.toFixed(1).replace('.',',')}%</div>
+    </div>`).join('');
+}
+
+function sigaDibujarBarrasNota_(id,datos){
+  const c=document.getElementById(id);
+  if(!c) return;
+  if(!datos.length){ c.innerHTML='<div class="chart-empty">No hay datos para la selección actual.</div>'; return; }
+  c.innerHTML=datos.map(item=>`
+    <div class="bar-row">
+      <div class="bar-label" title="${escapeHtml_(item.etiqueta)}">${escapeHtml_(item.etiqueta)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,Math.min(100,(item.valor/7)*100)).toFixed(1)}%"></div></div>
+      <div class="bar-value">${item.valor.toFixed(2).replace('.',',')}</div>
+    </div>`).join('');
+}
+
+function sigaDibujarSituacion_(aprobados,reprobados,pendientes){
+  const c=document.getElementById('sigaSituacion');
+  if(!c) return;
+  const total=aprobados+reprobados+pendientes;
+  const items=[
+    ['Aprobados',aprobados,'ok'],
+    ['Reprobados',reprobados,'bad'],
+    ['Pendientes',pendientes,'pending']
+  ];
+  c.innerHTML=items.map(([label,n,clase])=>{
+    const pct=total ? n/total*100 : 0;
+    return `<div class="siga-status-card ${clase}">
+      <div class="siga-status-value">${formatearNumero_(n)}</div>
+      <div class="siga-status-label">${label}</div>
+      <div class="siga-status-pct">${pct.toFixed(1).replace('.',',')}%</div>
+    </div>`;
+  }).join('');
+}
+
+function sigaDibujarTabla_(filas){
+  const tbody=document.getElementById('sigaDetalleAsignaturas');
+  if(!tbody) return;
+  if(!filas.length){
+    tbody.innerHTML='<tr><td colspan="7" class="siga-table-empty">No hay datos para la selección actual.</td></tr>';
+    return;
+  }
+
+  const ordenadas=[...filas].sort((a,b)=>
+    a.idCurso.localeCompare(b.idCurso,'es') ||
+    a.asignatura.localeCompare(b.asignatura,'es')
+  );
+
+  tbody.innerHTML=ordenadas.map(r=>`
+    <tr>
+      <td>${escapeHtml_(r.idCurso)}</td>
+      <td>${escapeHtml_(r.asignatura)}</td>
+      <td class="num">${formatearNumero_(r.evaluaciones)}</td>
+      <td class="num">${r.promedio ? r.promedio.toFixed(2).replace('.',',') : '—'}</td>
+      <td class="num">${formatearNumero_(r.aprobados)}</td>
+      <td class="num">${formatearNumero_(r.reprobados)}</td>
+      <td class="num">${formatearNumero_(r.pendientes)}</td>
+    </tr>`).join('');
+}
 </script>

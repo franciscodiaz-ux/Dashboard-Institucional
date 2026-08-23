@@ -17,7 +17,7 @@ const CATEGORIES = [
   { id:'plan_mejora', label:'Plan de Mejora 2026-2027', tabs:[] },
   { id:'sistema_calidad', label:'Sistema de Calidad', tabs:[] },
   { id:'financieros', label:'Indicadores Financieros', tabs:[] },
-  { id:'otros', label:'Otros indicadores', tabs:[] }
+  { id:'otros', label:'Resultados SIGA', tabs:[] }
 ];
 
 let currentCategory = 'academicos';
@@ -289,6 +289,14 @@ function renderCurrentTab(){
     typeof renderSistemaCalidad_ === 'function'
   ) {
     renderSistemaCalidad_();
+    return;
+  }
+
+  if (
+    currentCategory === 'otros' &&
+    typeof renderResultadosSiga_ === 'function'
+  ) {
+    renderResultadosSiga_();
     return;
   }
 
