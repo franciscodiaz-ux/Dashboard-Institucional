@@ -1,3 +1,231 @@
 <script>
-/* Sistema de Calidad: reservado para próximas implementaciones. */
+/* ================================================================
+ * SISTEMA DE ASEGURAMIENTO INTERNO DE LA CALIDAD
+ * Vista institucional basada en la Política y Sistema de
+ * Aseguramiento Interno de la Calidad CFT Laplace, actualización 2026.
+ *
+ * Criterio de diseño:
+ * - La organización se presenta desde los lineamientos y procesos
+ *   propios del CFT Laplace.
+ * - CNA queda como marco externo de referencia y no estructura la vista.
+ * - No se muestran porcentajes de cumplimiento hasta contar con una
+ *   fuente institucional que los sustente.
+ * ================================================================ */
+
+function renderSistemaCalidad_(){
+  const content = document.getElementById('tabContent');
+  if (!content) return;
+
+  content.innerHTML = `
+    <main class="sac-view">
+      <section class="sac-hero">
+        <div>
+          <div class="sac-kicker">Sistema de Aseguramiento Interno de la Calidad</div>
+          <h2 class="sac-title">Cumplir lo que se promete y prometer lo que se debe</h2>
+          <p class="sac-intro">
+            El sistema articula los procesos institucionales para verificar lo declarado,
+            lo implementado y lo evidenciado, detectar brechas y activar acciones de mejora.
+          </p>
+        </div>
+        <div class="sac-version">
+          <span>Política institucional</span>
+          <strong>Actualización 2026</strong>
+          <small>Dirección de Aseguramiento de la Calidad</small>
+        </div>
+      </section>
+
+      <section class="sac-section">
+        <div class="sac-section-heading">
+          <div>
+            <div class="sac-section-kicker">Ciclo institucional</div>
+            <h3>Mejora continua</h3>
+          </div>
+          <p>La calidad se gestiona como un ciclo de verificación y aprendizaje institucional.</p>
+        </div>
+
+        <div class="sac-cycle" aria-label="Ciclo de mejora continua">
+          ${sacCycleStep_('1','Promesa','Definir compromisos institucionales claros.')}
+          ${sacCycleArrow_()}
+          ${sacCycleStep_('2','Grado de cumplimiento','Verificar resultados y evidencias.')}
+          ${sacCycleArrow_()}
+          ${sacCycleStep_('3','Detección de brecha','Identificar diferencias entre lo esperado y lo observado.')}
+          ${sacCycleArrow_()}
+          ${sacCycleStep_('4','Análisis causal','Comprender las causas de las brechas detectadas.')}
+          ${sacCycleArrow_()}
+          ${sacCycleStep_('5','Plan de mejora','Definir acciones, responsables, plazos e indicadores.')}
+        </div>
+      </section>
+
+      <section class="sac-section">
+        <div class="sac-section-heading">
+          <div>
+            <div class="sac-section-kicker">Política de calidad</div>
+            <h3>Cuatro lineamientos institucionales</h3>
+          </div>
+          <p>Los lineamientos ordenan el sistema desde las funciones propias del CFT Laplace.</p>
+        </div>
+
+        <div class="sac-lineamientos">
+          ${sacLineamiento_('01','Docencia y resultados del proceso formativo',[
+            'Pertinencia y coherencia de la oferta formativa.',
+            'Trazabilidad entre perfil de egreso, RPE, RAA, programas, syllabus y evaluación.',
+            'Seguimiento de progresión, asistencia, rendimiento, titulación y empleabilidad.',
+            'Idoneidad, inducción, evaluación y capacitación del cuerpo docente.'
+          ])}
+          ${sacLineamiento_('02','Gestión estratégica y recursos institucionales',[
+            'Planificación y estructura coherentes con los propósitos institucionales.',
+            'Gestión de personas, recursos financieros, equipamiento e infraestructura.',
+            'Sistemas tecnológicos y evidencia diferenciada cuando corresponda.',
+            'Apoyo estudiantil, convivencia, inclusión y bienestar.'
+          ])}
+          ${sacLineamiento_('03','Aseguramiento interno de la calidad y autorregulación',[
+            'Matrices de aseguramiento con responsables, indicadores, metas y evidencias.',
+            'Información confiable para análisis institucional y toma de decisiones.',
+            'Auditorías internas, análisis de brechas y seguimiento de planes de mejora.',
+            'Fortalecimiento de una cultura institucional de calidad.'
+          ])}
+          ${sacLineamiento_('04','Vinculación con el medio',[
+            'Seguimiento formal de las actividades de vinculación.',
+            'Evaluación de su contribución al proceso formativo y al entorno.',
+            'Retroalimentación de titulados, empleadores, comunidades y actores externos.',
+            'Uso de resultados para mejorar perfiles, programas e instrumentos.'
+          ])}
+        </div>
+      </section>
+
+      <section class="sac-section">
+        <div class="sac-section-heading">
+          <div>
+            <div class="sac-section-kicker">Arquitectura institucional</div>
+            <h3>Mapa de procesos</h3>
+          </div>
+          <p>Los procesos se relacionan desde el diagnóstico de necesidades hasta los resultados institucionales.</p>
+        </div>
+
+        <div class="sac-process-map">
+          <div class="sac-process-side sac-process-input">
+            <strong>Diagnóstico estratégico</strong>
+            <span>Necesidades de estudiantes y redes asociadas</span>
+          </div>
+
+          <div class="sac-process-core">
+            ${sacProcessBand_('Procesos visionales',[
+              'Gestión estratégica y sustentabilidad',
+              'Análisis institucional',
+              'Aseguramiento interno de la calidad y mejora continua'
+            ])}
+            ${sacProcessBand_('Procesos misionales',[
+              'Docencia y procesos formativos',
+              'Innovación curricular y disciplinar',
+              'Vinculación con el medio'
+            ])}
+            ${sacProcessBand_('Procesos de apoyo',[
+              'Gestión de apoyo estudiantil',
+              'Tecnologías educativas y sistemas de información',
+              'Gestión de recursos humanos, materiales y financieros'
+            ])}
+          </div>
+
+          <div class="sac-process-side sac-process-output">
+            <strong>Resultados</strong>
+            <span>Satisfacción de estudiantes y redes asociadas</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="sac-section">
+        <div class="sac-section-heading">
+          <div>
+            <div class="sac-section-kicker">Modelo formativo</div>
+            <h3>Cadena de trazabilidad</h3>
+          </div>
+          <p>La evidencia formativa debe permitir seguir el recorrido completo desde el perfil declarado hasta la mejora.</p>
+        </div>
+
+        <div class="sac-trace">
+          ${['Perfil de Egreso','RPE','Matriz de Tributación','Plan de Estudios','Programa de Asignatura','Syllabus','Instrumento de Evaluación','Evidencia de Logro','Análisis de Resultados','Mejora Continua'].map((x,i)=>`
+            <div class="sac-trace-item">
+              <span>${String(i+1).padStart(2,'0')}</span>
+              <strong>${x}</strong>
+            </div>${i<9?'<div class="sac-trace-arrow">→</div>':''}
+          `).join('')}
+        </div>
+      </section>
+
+      <section class="sac-section">
+        <div class="sac-section-heading">
+          <div>
+            <div class="sac-section-kicker">Gestión documental</div>
+            <h3>Evidencias del sistema</h3>
+          </div>
+          <p>Cada evidencia debe tener responsable, fecha, fuente y proceso institucional asociado.</p>
+        </div>
+
+        <div class="sac-evidence-grid">
+          ${sacEvidence_('Curricular','Perfiles RPE, matrices de tributación, planes de estudio, programas, syllabus, instrumentos y rúbricas.','Dirección Docente · UDIC · Jefaturas de Carrera')}
+          ${sacEvidence_('Académica','Asistencia, calificaciones, evaluaciones integradoras, prácticas, titulación e informes de logro.','Dirección Docente · Registro Curricular · Docentes')}
+          ${sacEvidence_('Gestión institucional','PDE, Plan de Mejora, presupuesto, inversiones, actas, organigrama y descriptores.','Rectoría · DAF · Secretaría General · DAC')}
+          ${sacEvidence_('Calidad','Matrices SAC, auditorías, autoevaluación, planes de mejora y reportes de seguimiento.','DAC · Comité de Aseguramiento de la Calidad')}
+          ${sacEvidence_('Vinculación con el medio','Plan VcM, convenios, actividades, encuestas, informes de impacto y retroalimentación curricular.','Dirección de Vinculación con el Medio · Dirección Docente')}
+          ${sacEvidence_('Sistemas de información','Dashboards, bitácoras, bases de datos, reportes de consistencia, respaldos y manuales.','TI · DAC · Unidades usuarias')}
+        </div>
+      </section>
+
+      <section class="sac-note">
+        <strong>Próxima capa del dashboard</strong>
+        <span>
+          Esta vista representa la arquitectura declarada del sistema. Los estados de cumplimiento,
+          brechas, responsables y evidencias se incorporarán cuando exista una fuente institucional
+          estructurada que permita mostrarlos sin estimaciones manuales.
+        </span>
+      </section>
+    </main>
+  `;
+}
+
+function sacCycleStep_(n,titulo,texto){
+  return `
+    <div class="sac-cycle-step">
+      <span class="sac-cycle-number">${n}</span>
+      <div>
+        <strong>${titulo}</strong>
+        <p>${texto}</p>
+      </div>
+    </div>`;
+}
+
+function sacCycleArrow_(){
+  return '<div class="sac-cycle-arrow">→</div>';
+}
+
+function sacLineamiento_(numero,titulo,puntos){
+  return `
+    <article class="sac-lineamiento-card">
+      <div class="sac-lineamiento-number">${numero}</div>
+      <h4>${titulo}</h4>
+      <ul>${puntos.map(p=>`<li>${p}</li>`).join('')}</ul>
+    </article>`;
+}
+
+function sacProcessBand_(titulo,procesos){
+  return `
+    <div class="sac-process-band">
+      <div class="sac-process-band-title">${titulo}</div>
+      <div class="sac-process-items">
+        ${procesos.map(p=>`<div class="sac-process-item">${p}</div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function sacEvidence_(tipo,ejemplos,responsable){
+  return `
+    <article class="sac-evidence-card">
+      <h4>${tipo}</h4>
+      <p>${ejemplos}</p>
+      <div class="sac-evidence-owner">
+        <span>Responsable primario</span>
+        <strong>${responsable}</strong>
+      </div>
+    </article>`;
+}
 </script>

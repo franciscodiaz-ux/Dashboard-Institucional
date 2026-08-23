@@ -282,6 +282,16 @@ function renderCurrentTab(){
   const cat = currentCategoryObj();
   const content = document.getElementById('tabContent');
 
+  // El Sistema de Aseguramiento de la Calidad es una vista institucional propia,
+  // no una colección de indicadores CNA. Se renderiza como arquitectura del SAC.
+  if (
+    currentCategory === 'sistema_calidad' &&
+    typeof renderSistemaCalidad_ === 'function'
+  ) {
+    renderSistemaCalidad_();
+    return;
+  }
+
   if(!cat.tabs.length){
     content.innerHTML =
       `<div class="category-empty">Todavía no hay indicadores cargados en "${cat.label}".</div>`;
