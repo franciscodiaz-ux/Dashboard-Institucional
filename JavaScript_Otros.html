@@ -1,4 +1,5 @@
 <script>
+
 /**
  * Resultados SIGA · Seguimiento Académico
  * Fuente: SIGA_ESI_2026_1.
@@ -20,7 +21,7 @@ function renderResultadosSiga_(){
             <div class="dataset-view-title">Resultados SIGA · Seguimiento Académico</div>
           </div>
           <div class="dataset-view-subtitle">
-            Seguimiento agregado del semestre ${escapeHtml_(SIGA_DATA.periodo)} · Sin datos personales de estudiantes.
+            Seguimiento agregado del semestre ${escapeHtml_(SIGA_DATA.periodo)} · La vista principal no publica datos personales de estudiantes.
           </div>
         </div>
       </div>
@@ -36,68 +37,56 @@ function renderResultadosSiga_(){
         </div>
       </section>
 
-      <section class="kpi-grid siga-kpi-grid">
-        ${sigaKpiHtml_('sigaKpiMatriculados','Matriculados')}
-        ${sigaKpiHtml_('sigaKpiEvaluados','Evaluados')}
-        ${sigaKpiHtml_('sigaKpiCobertura','Cobertura SIGA')}
-        ${sigaKpiHtml_('sigaKpiPromedio','Promedio final')}
-        ${sigaKpiHtml_('sigaKpiAprobacion','Aprobación')}
+      <section class="siga-section siga-section-implementacion">
+        <div class="siga-section-heading">
+          <div><div class="siga-section-kicker">Implementación SIGA</div><h2>Avance de aplicación y cobertura</h2><p>Indicadores operativos del proceso: matrícula cubierta, estudiantes evaluados y avance de registro.</p></div>
+        </div>
+        <section class="kpi-grid siga-kpi-grid siga-kpi-grid-implementation">
+          ${sigaKpiHtml_('sigaKpiMatriculados','Estudiantes matriculados')}
+          ${sigaKpiHtml_('sigaKpiEvaluados','Estudiantes evaluados')}
+          ${sigaKpiHtml_('sigaKpiPendientesEvaluar','Pendientes de evaluar')}
+          ${sigaKpiHtml_('sigaKpiCobertura','Cobertura SIGA')}
+          ${sigaKpiHtml_('sigaKpiRegistros','Registros académicos')}
+        </section>
+        <section class="charts-grid siga-charts-implementacion">
+          <article class="chart-card chart-card-wide">
+            <div class="chart-title">Cobertura de evaluación por curso</div>
+            <div class="chart-subtitle">Estudiantes con resultados SIGA respecto de la matrícula vigente. Los cursos se muestran con nombre descriptivo, no con código interno.</div>
+            <div id="sigaCoberturaCursos" class="bar-chart siga-bar-chart"></div>
+          </article>
+        </section>
       </section>
 
-      <section class="charts-grid">
-        <article class="chart-card">
-          <div class="chart-title">Cobertura de evaluación por curso</div>
-          <div class="chart-subtitle">Estudiantes con resultados SIGA respecto de la matrícula vigente.</div>
-          <div id="sigaCoberturaCursos" class="bar-chart siga-bar-chart"></div>
-        </article>
-
-        <article class="chart-card">
-          <div class="chart-title">Promedio final por carrera</div>
-          <div class="chart-subtitle">Promedio ponderado por registros de asignatura.</div>
-          <div id="sigaPromedioCarreras" class="bar-chart siga-bar-chart"></div>
-        </article>
-
-        <article class="chart-card">
-          <div class="chart-title">Promedio final por sede</div>
-          <div class="chart-subtitle">Comparación del desempeño académico agregado.</div>
-          <div id="sigaPromedioSedes" class="bar-chart"></div>
-        </article>
-
-        <article class="chart-card">
-          <div class="chart-title">Situación académica</div>
-          <div class="chart-subtitle">Distribución de resultados de asignatura.</div>
-          <div id="sigaSituacion" class="siga-status-grid"></div>
-        </article>
-
-        <article class="chart-card chart-card-wide">
-          <div class="chart-title">Detalle por asignatura</div>
-          <div class="chart-subtitle">Resultados agregados según los filtros seleccionados.</div>
-          <div class="siga-table-wrap">
-            <table class="siga-table">
-              <thead>
-                <tr>
-                  <th>Curso</th>
-                  <th>Asignatura</th>
-                  <th>Evaluaciones</th>
-                  <th>Promedio</th>
-                  <th>Aprobados</th>
-                  <th>Reprobados</th>
-                  <th>Pendientes</th>
-                </tr>
-              </thead>
-              <tbody id="sigaDetalleAsignaturas"></tbody>
-            </table>
-          </div>
-        </article>
+      <section class="siga-section siga-section-resultados">
+        <div class="siga-section-heading">
+          <div><div class="siga-section-kicker">Resultados académicos</div><h2>Resultados entregados por SIGA</h2><p>Indicadores de desempeño académico consolidados una vez aplicado el instrumento.</p></div>
+        </div>
+        <section class="kpi-grid siga-kpi-grid siga-kpi-grid-results">
+          ${sigaKpiHtml_('sigaKpiPromedio','Promedio final')}
+          ${sigaKpiHtml_('sigaKpiAprobacion','Aprobación')}
+          ${sigaKpiHtml_('sigaKpiReprobados','Reprobaciones')}
+          ${sigaKpiHtml_('sigaKpiPendientesResultado','Resultados pendientes')}
+        </section>
+        <section class="charts-grid">
+          <article class="chart-card"><div class="chart-title">Promedio final por carrera</div><div class="chart-subtitle">Promedio ponderado por registros de asignatura.</div><div id="sigaPromedioCarreras" class="bar-chart siga-bar-chart"></div></article>
+          <article class="chart-card"><div class="chart-title">Promedio final por sede</div><div class="chart-subtitle">Comparación del desempeño académico agregado.</div><div id="sigaPromedioSedes" class="bar-chart"></div></article>
+          <article class="chart-card chart-card-wide"><div class="chart-title">Situación académica</div><div class="chart-subtitle">Distribución de resultados de asignatura.</div><div id="sigaSituacion" class="siga-status-grid"></div></article>
+          <article class="chart-card chart-card-wide">
+            <div class="chart-title">Detalle por asignatura</div><div class="chart-subtitle">Resultados agregados según los filtros seleccionados.</div>
+            <div class="siga-table-wrap"><table class="siga-table"><thead><tr><th>Curso</th><th>Asignatura</th><th>Evaluaciones</th><th>Promedio</th><th>Aprobados</th><th>Reprobados</th><th>Pendientes</th></tr></thead><tbody id="sigaDetalleAsignaturas"></tbody></table></div>
+          </article>
+        </section>
       </section>
 
       <div class="dataset-status">
-        Fuente institucional: SIGA/ESI ${escapeHtml_(SIGA_DATA.periodo)}. La vista presenta únicamente resultados agregados.
+        Fuente institucional: SIGA/ESI ${escapeHtml_(SIGA_DATA.periodo)}. La vista principal presenta únicamente información agregada.
       </div>
+      ${sigaModalDetalleHtml_()}
     </main>
   `;
 
   sigaConfigurarFiltros_();
+  sigaConfigurarModalDetalle_();
   sigaAplicarFiltros_();
 }
 
@@ -118,17 +107,39 @@ function sigaKpiHtml_(id, label){
     </article>`;
 }
 
+function sigaModalDetalleHtml_(){
+  return `
+    <div id="sigaDetalleOverlay" class="siga-detail-overlay" hidden>
+      <section class="siga-detail-modal" role="dialog" aria-modal="true" aria-labelledby="sigaDetalleTitulo">
+        <div class="siga-detail-modal-header"><div><div class="siga-section-kicker">Detalle SIGA</div><h3 id="sigaDetalleTitulo">Detalle individual</h3></div><button type="button" class="siga-detail-close" id="sigaDetalleCerrar" aria-label="Cerrar">×</button></div>
+        <div class="siga-detail-modal-body" id="sigaDetalleContenido"><div class="chart-empty">Ventana preparada. Los indicadores que la abrirán y los campos personales permitidos se definirán posteriormente.</div></div>
+      </section>
+    </div>`;
+}
+
+function sigaConfigurarModalDetalle_(){
+  const overlay=document.getElementById('sigaDetalleOverlay'); const cerrar=document.getElementById('sigaDetalleCerrar');
+  if(!overlay||!cerrar) return; cerrar.addEventListener('click',sigaCerrarDetalle_); overlay.addEventListener('click',e=>{if(e.target===overlay)sigaCerrarDetalle_();});
+}
+
+function sigaAbrirDetalle_(titulo,html){
+  const overlay=document.getElementById('sigaDetalleOverlay'), t=document.getElementById('sigaDetalleTitulo'), c=document.getElementById('sigaDetalleContenido');
+  if(!overlay||!t||!c) return; t.textContent=titulo||'Detalle individual'; c.innerHTML=html||'<div class="chart-empty">Sin detalle configurado.</div>'; overlay.hidden=false;
+}
+
+function sigaCerrarDetalle_(){ const overlay=document.getElementById('sigaDetalleOverlay'); if(overlay) overlay.hidden=true; }
+
 function sigaUnicos_(valores){
   return [...new Set((valores || []).filter(Boolean))]
     .sort((a,b) => String(a).localeCompare(String(b),'es',{numeric:true}));
 }
 
-function sigaLlenarSelect_(id, valores, etiqueta){
+function sigaLlenarSelect_(id, valores, etiqueta, etiquetador){
   const select = document.getElementById(id);
   if (!select) return;
   const actual = select.value;
   select.innerHTML = `<option value="">${etiqueta}</option>` +
-    sigaUnicos_(valores).map(v => `<option value="${escapeHtml_(v)}">${escapeHtml_(v)}</option>`).join('');
+    sigaUnicos_(valores).map(v => { const texto = etiquetador ? etiquetador(v) : v; return `<option value="${escapeHtml_(v)}">${escapeHtml_(texto)}</option>`; }).join('');
   if ([...select.options].some(o => o.value === actual)) select.value = actual;
 }
 
@@ -138,7 +149,7 @@ function sigaConfigurarFiltros_(){
   sigaLlenarSelect_('sigaCarrera', cursos.map(r=>r.carrera), 'Todas las carreras');
   sigaLlenarSelect_('sigaJornada', cursos.map(r=>r.jornada), 'Todas las jornadas');
   sigaLlenarSelect_('sigaSemestre', cursos.map(r=>r.semestre), 'Todos los semestres');
-  sigaLlenarSelect_('sigaCurso', cursos.map(r=>r.idCurso), 'Todos los cursos');
+  sigaLlenarSelect_('sigaCurso', cursos.map(r=>r.idCurso), 'Todos los cursos', sigaNombreCursoDesdeId_);
 
   ['sigaSede','sigaCarrera','sigaJornada','sigaSemestre','sigaCurso'].forEach(id => {
     const el = document.getElementById(id);
@@ -171,6 +182,7 @@ function sigaAplicarFiltros_(){
 
   const matriculados = cursos.reduce((s,r)=>s+r.matriculados,0);
   const evaluados = cursos.reduce((s,r)=>s+r.evaluados,0);
+  const pendientesEvaluar = Math.max(0, matriculados - evaluados);
   const cobertura = matriculados ? evaluados / matriculados * 100 : 0;
   const registros = cursos.reduce((s,r)=>s+r.registros,0);
   const promedio = registros
@@ -186,12 +198,20 @@ function sigaAplicarFiltros_(){
   asignarTexto_('sigaKpiMatriculadosNota', `${cursos.length} curso${cursos.length===1?'':'s'} seleccionado${cursos.length===1?'':'s'}`);
   asignarTexto_('sigaKpiEvaluados', formatearNumero_(evaluados));
   asignarTexto_('sigaKpiEvaluadosNota', 'Estudiantes con resultados publicados');
+  asignarTexto_('sigaKpiPendientesEvaluar', formatearNumero_(pendientesEvaluar));
+  asignarTexto_('sigaKpiPendientesEvaluarNota', 'Matrícula aún sin resultado SIGA publicado');
   asignarTexto_('sigaKpiCobertura', `${cobertura.toFixed(1).replace('.',',')}%`);
   asignarTexto_('sigaKpiCoberturaNota', `${formatearNumero_(evaluados)} de ${formatearNumero_(matriculados)} estudiantes`);
+  asignarTexto_('sigaKpiRegistros', formatearNumero_(registros));
+  asignarTexto_('sigaKpiRegistrosNota', 'Registros de estudiante-asignatura disponibles');
   asignarTexto_('sigaKpiPromedio', promedio ? promedio.toFixed(2).replace('.',',') : '—');
   asignarTexto_('sigaKpiPromedioNota', `${formatearNumero_(registros)} resultados de asignatura`);
   asignarTexto_('sigaKpiAprobacion', `${aprobacion.toFixed(1).replace('.',',')}%`);
-  asignarTexto_('sigaKpiAprobacionNota', `${formatearNumero_(aprobados)} aprobados · ${formatearNumero_(reprobados)} reprobados`);
+  asignarTexto_('sigaKpiAprobacionNota', `${formatearNumero_(aprobados)} aprobados de ${formatearNumero_(totalSituacion)}`);
+  asignarTexto_('sigaKpiReprobados', formatearNumero_(reprobados));
+  asignarTexto_('sigaKpiReprobadosNota', 'Resultados de asignatura reprobados');
+  asignarTexto_('sigaKpiPendientesResultado', formatearNumero_(pendientes));
+  asignarTexto_('sigaKpiPendientesResultadoNota', 'Resultados de asignatura aún pendientes');
 
   sigaDibujarCobertura_(cursos);
   sigaDibujarPromediosCarrera_(cursos);
@@ -200,9 +220,21 @@ function sigaAplicarFiltros_(){
   sigaDibujarTabla_(asignaturas);
 }
 
+function sigaNombreCurso_(r){
+  if (!r) return '';
+  const carrera = sigaEtiquetaCorta_(r.carrera || 'Curso');
+  const semestre = r.nivel || (r.semestre ? `Semestre ${r.semestre}` : '');
+  return [carrera, semestre, r.jornada || '', r.sede || ''].filter(Boolean).join(' · ');
+}
+
+function sigaNombreCursoDesdeId_(idCurso){
+  const curso = (SIGA_DATA.cursos || []).find(r => r.idCurso === idCurso);
+  return curso ? sigaNombreCurso_(curso) : idCurso;
+}
+
 function sigaDibujarCobertura_(cursos){
   const datos = cursos
-    .map(r => ({etiqueta:r.idCurso, valor:r.cobertura}))
+    .map(r => ({etiqueta:sigaNombreCurso_(r), valor:r.cobertura}))
     .sort((a,b)=>b.valor-a.valor);
 
   sigaDibujarBarrasPorcentaje_('sigaCoberturaCursos',datos);
@@ -244,7 +276,7 @@ function sigaDibujarBarrasPorcentaje_(id,datos){
   if(!c) return;
   if(!datos.length){ c.innerHTML='<div class="chart-empty">No hay datos para la selección actual.</div>'; return; }
   c.innerHTML=datos.map(item=>`
-    <div class="bar-row">
+    <div class="bar-row siga-course-bar-row">
       <div class="bar-label" title="${escapeHtml_(item.etiqueta)}">${escapeHtml_(item.etiqueta)}</div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.max(2,Math.min(100,item.valor)).toFixed(1)}%"></div></div>
       <div class="bar-value">${item.valor.toFixed(1).replace('.',',')}%</div>
@@ -297,7 +329,7 @@ function sigaDibujarTabla_(filas){
 
   tbody.innerHTML=ordenadas.map(r=>`
     <tr>
-      <td>${escapeHtml_(r.idCurso)}</td>
+      <td title="${escapeHtml_(r.idCurso)}">${escapeHtml_(sigaNombreCursoDesdeId_(r.idCurso))}</td>
       <td>${escapeHtml_(r.asignatura)}</td>
       <td class="num">${formatearNumero_(r.evaluaciones)}</td>
       <td class="num">${r.promedio ? r.promedio.toFixed(2).replace('.',',') : '—'}</td>
@@ -306,4 +338,5 @@ function sigaDibujarTabla_(filas){
       <td class="num">${formatearNumero_(r.pendientes)}</td>
     </tr>`).join('');
 }
+
 </script>
