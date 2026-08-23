@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 
-set "COMMIT_MSG=Implementa Resultados SIGA 2026-1 en dashboard institucional"
+set "COMMIT_MSG=Separa Aplicacion SIGA y Resultados SIGA en subcategorias"
 
 echo ============================================
 echo   CFT Laplace - Despliegue Dashboard
