@@ -22,12 +22,14 @@ echo ------------------------------------------------
 echo Se intentara renovar la autenticacion de Google.
 echo.
 echo IMPORTANTE:
-echo - Complete el inicio de sesion cuando clasp lo solicite.
+echo - Se abrira el navegador para renovar la sesion de clasp.
+echo - Use la cuenta direccion.calidad@cftlaplace.cl.
+echo - Si esa cuenta ya tiene una sesion activa en el navegador, solo sera necesario confirmar el acceso.
 echo - Al terminar, el despliegue continuara automaticamente.
 echo.
 
 call clasp logout >nul 2>&1
-call clasp login --no-localhost
+call clasp login
 if errorlevel 1 goto :error_auth
 
 echo.

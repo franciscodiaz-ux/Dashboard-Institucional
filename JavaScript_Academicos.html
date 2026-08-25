@@ -199,29 +199,29 @@ function renderMatriculaBase_(){
         ${kpiAcademicoHtml_('kpiMatriculaMujeresPct','Mujeres','calculo','Porcentaje calculado como Matrícula de mujeres dividido por Matrícula total, multiplicado por 100.','Fuente: SIES')}
       </section>
 
-      <section class="charts-grid">
+      <section class="charts-grid matricula-evolution-grid">
         <article class="chart-card">
-          <div class="chart-title">Evolución de matrícula por año</div>
-          <div class="chart-subtitle">Suma de matrícula para los registros filtrados</div>
-          <div class="bar-chart" id="graficoMatriculaAno"></div>
+          <div class="chart-title">Evolución de matrícula total por año</div>
+          <div class="chart-subtitle">Número de estudiantes matriculados · Fuente: SIES</div>
+          <div class="matricula-chart" id="graficoMatriculaAno"></div>
         </article>
 
         <article class="chart-card">
-          <div class="chart-title">Matrícula por sede</div>
-          <div class="chart-subtitle">Distribución según sede</div>
-          <div class="bar-chart" id="graficoMatriculaSede"></div>
+          <div class="chart-title">Evolución de matrícula de primer año</div>
+          <div class="chart-subtitle">Número de estudiantes de primer año · Fuente: SIES</div>
+          <div class="matricula-chart" id="graficoMatriculaPrimerAno"></div>
         </article>
 
         <article class="chart-card">
-          <div class="chart-title">Matrícula por jornada</div>
-          <div class="chart-subtitle">Distribución según jornada</div>
-          <div class="bar-chart" id="graficoMatriculaJornada"></div>
+          <div class="chart-title">Evolución de composición por sexo</div>
+          <div class="chart-subtitle">Participación porcentual de hombres y mujeres · Fuente: SIES</div>
+          <div class="matricula-chart" id="graficoMatriculaSexo"></div>
         </article>
 
-        <article class="chart-card chart-card-wide">
-          <div class="chart-title">Matrícula por carrera</div>
-          <div class="chart-subtitle">Hasta 12 carreras, ordenadas por matrícula</div>
-          <div class="bar-chart" id="graficoMatriculaCarrera"></div>
+        <article class="chart-card">
+          <div class="chart-title">Evolución de matrícula por carrera</div>
+          <div class="chart-subtitle">Matrícula anual por carrera · Fuente: SIES</div>
+          <div class="matricula-chart" id="graficoMatriculaCarrera"></div>
         </article>
       </section>
 
@@ -330,28 +330,26 @@ function actualizarVisualizacionesMatricula_(){
 
   actualizarKPIsMatricula_(registros);
 
-  dibujarBarras_(
+  dibujarColumnasMatricula_(
     'graficoMatriculaAno',
-    agregarMatriculaPorCampo_(registros, 'AÑO', true),
-    12
+    agregarMatriculaPorCampoValor_(registros, 'AÑO', 'TOTAL MATRÍCULA'),
+    'Matrícula total'
   );
 
-  dibujarBarras_(
-    'graficoMatriculaSede',
-    agregarMatriculaPorCampo_(registros, 'NOMBRE SEDE'),
-    12
+  dibujarColumnasMatricula_(
+    'graficoMatriculaPrimerAno',
+    agregarMatriculaPorCampoValor_(registros, 'AÑO', 'TOTAL MATRÍCULA PRIMER AÑO'),
+    'Primer año'
   );
 
-  dibujarBarras_(
-    'graficoMatriculaJornada',
-    agregarMatriculaPorCampo_(registros, 'JORNADA'),
-    12
+  dibujarSexoMatricula_(
+    'graficoMatriculaSexo',
+    agregarSexoMatriculaPorAno_(registros)
   );
 
-  dibujarBarras_(
+  dibujarCarrerasMatriculaPorAno_(
     'graficoMatriculaCarrera',
-    agregarMatriculaPorCampo_(registros, 'NOMBRE CARRERA'),
-    12
+    registros
   );
 }
 
@@ -419,6 +417,74 @@ function agregarMatriculaPorCampo_(registros, campo, ordenarAno){
   }
 
   return resultado.sort((a, b) => b.valor - a.valor);
+}
+
+function agregarMatriculaPorCampoValor_(registros, campo, campoValor){
+  const mapa = {};
+  registros.forEach(function(registro){
+    const etiqueta = extraerAnoFrontend_(String(registro[campo] || '').trim());
+    if (!etiqueta) return;
+    mapa[etiqueta] = (mapa[etiqueta] || 0) + numeroMatricula_(registro[campoValor]);
+  });
+  return Object.keys(mapa).map(function(etiqueta){
+    return {etiqueta: etiqueta, valor: mapa[etiqueta]};
+  }).sort((a,b) => Number(a.etiqueta) - Number(b.etiqueta));
+}
+
+function agregarSexoMatriculaPorAno_(registros){
+  const mapa = {};
+  registros.forEach(function(registro){
+    const ano = extraerAnoFrontend_(String(registro['AÑO'] || '').trim());
+    if (!ano) return;
+    if (!mapa[ano]) mapa[ano] = {ano:ano, hombres:0, mujeres:0};
+    mapa[ano].hombres += numeroMatricula_(registro['TOTAL MATRÍCULA HOMBRES']);
+    mapa[ano].mujeres += numeroMatricula_(registro['TOTAL MATRÍCULA MUJERES']);
+  });
+  return Object.values(mapa).sort((a,b) => Number(a.ano) - Number(b.ano));
+}
+
+function svgEsc_(texto){
+  return String(texto).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+
+function dibujarColumnasMatricula_(id, datos, etiquetaSerie){
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (!datos.length) { el.innerHTML = '<div class="empty-state">Sin datos para los filtros seleccionados.</div>'; return; }
+  const W=640,H=300,L=48,R=18,T=28,B=42, iw=W-L-R, ih=H-T-B;
+  const max=Math.max(...datos.map(d=>d.valor),1);
+  const paso=iw/datos.length, bw=Math.min(54,paso*.62);
+  let svg=`<svg class="matricula-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${svgEsc_(etiquetaSerie)} por año">`;
+  for(let i=0;i<=4;i++){ const y=T+ih*i/4, v=Math.round(max*(1-i/4)); svg+=`<line class="m-grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text class="m-axis" x="${L-8}" y="${y+4}" text-anchor="end">${formatearNumero_(v)}</text>`; }
+  datos.forEach((d,i)=>{ const h=ih*d.valor/max, x=L+paso*i+(paso-bw)/2, y=T+ih-h; svg+=`<rect class="m-bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="2"><title>${svgEsc_(d.etiqueta)}: ${formatearNumero_(d.valor)}</title></rect><text class="m-value" x="${x+bw/2}" y="${Math.max(T+11,y-6)}" text-anchor="middle">${formatearNumero_(d.valor)}</text><text class="m-axis" x="${x+bw/2}" y="${H-15}" text-anchor="middle">${svgEsc_(d.etiqueta)}</text>`; });
+  svg+='</svg>'; el.innerHTML=svg;
+}
+
+function dibujarSexoMatricula_(id, datos){
+  const el=document.getElementById(id); if(!el)return;
+  if(!datos.length){el.innerHTML='<div class="empty-state">Sin datos para los filtros seleccionados.</div>';return;}
+  const W=640,H=300,L=48,R=18,T=24,B=55,iw=W-L-R,ih=H-T-B,paso=iw/datos.length,bw=Math.min(54,paso*.62);
+  let svg=`<svg class="matricula-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Composición porcentual por sexo y año">`;
+  [0,25,50,75,100].forEach(p=>{const y=T+ih*(1-p/100);svg+=`<line class="m-grid" x1="${L}" y1="${y}" x2="${W-R}" y2="${y}"/><text class="m-axis" x="${L-8}" y="${y+4}" text-anchor="end">${p}%</text>`;});
+  datos.forEach((d,i)=>{const total=d.hombres+d.mujeres, ph=total?100*d.hombres/total:0, pm=total?100*d.mujeres/total:0, hh=ih*ph/100, hm=ih*pm/100,x=L+paso*i+(paso-bw)/2,yM=T,yH=T+hm; svg+=`<rect class="m-sex-w" x="${x}" y="${yM}" width="${bw}" height="${hm}"><title>${d.ano} Mujeres: ${pm.toFixed(1)}%</title></rect><rect class="m-sex-m" x="${x}" y="${yH}" width="${bw}" height="${hh}"><title>${d.ano} Hombres: ${ph.toFixed(1)}%</title></rect>`; if(pm>=12)svg+=`<text class="m-inside" x="${x+bw/2}" y="${yM+hm/2+4}" text-anchor="middle">${pm.toFixed(1)}%</text>`; if(ph>=12)svg+=`<text class="m-inside" x="${x+bw/2}" y="${yH+hh/2+4}" text-anchor="middle">${ph.toFixed(1)}%</text>`; svg+=`<text class="m-axis" x="${x+bw/2}" y="${H-28}" text-anchor="middle">${d.ano}</text>`;});
+  svg+=`<g class="m-legend"><rect class="m-sex-m" x="${L}" y="${H-14}" width="10" height="10"/><text x="${L+15}" y="${H-5}">Hombres</text><rect class="m-sex-w" x="${L+100}" y="${H-14}" width="10" height="10"/><text x="${L+115}" y="${H-5}">Mujeres</text></g></svg>`; el.innerHTML=svg;
+}
+
+function dibujarCarrerasMatriculaPorAno_(id, registros){
+  const el=document.getElementById(id); if(!el)return;
+  const anos=[...new Set(registros.map(r=>extraerAnoFrontend_(String(r['AÑO']||''))).filter(Boolean))].sort((a,b)=>Number(a)-Number(b));
+  const carreras=[...new Set(registros.map(r=>String(r['NOMBRE CARRERA']||'').trim()).filter(Boolean))];
+  if(!anos.length||!carreras.length){el.innerHTML='<div class="empty-state">Sin datos para los filtros seleccionados.</div>';return;}
+  const mapa={}; registros.forEach(r=>{const a=extraerAnoFrontend_(String(r['AÑO']||'')),c=String(r['NOMBRE CARRERA']||'').trim();if(!a||!c)return;(mapa[c]||(mapa[c]={}))[a]=(mapa[c][a]||0)+numeroMatricula_(r['TOTAL MATRÍCULA']);});
+  const max=Math.max(1,...carreras.flatMap(c=>anos.map(a=>(mapa[c]&&mapa[c][a])||0)));
+  const W=640,H=300,L=48,R=18,T=25,B=70,iw=W-L-R,ih=H-T-B;
+  const x=a=>L+(anos.length===1?iw/2:iw*anos.indexOf(a)/(anos.length-1)), y=v=>T+ih-ih*v/max;
+  let svg=`<svg class="matricula-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Evolución de matrícula por carrera">`;
+  for(let i=0;i<=4;i++){const yy=T+ih*i/4,v=Math.round(max*(1-i/4));svg+=`<line class="m-grid" x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}"/><text class="m-axis" x="${L-8}" y="${yy+4}" text-anchor="end">${formatearNumero_(v)}</text>`;}
+  anos.forEach(a=>svg+=`<text class="m-axis" x="${x(a)}" y="${H-48}" text-anchor="middle">${a}</text>`);
+  carreras.forEach((c,idx)=>{const pts=anos.map(a=>({a,v:(mapa[c]&&mapa[c][a])||0})).filter(p=>p.v>0);if(!pts.length)return;const cls='m-line-'+(idx%8);svg+=`<polyline class="m-line ${cls}" points="${pts.map(p=>`${x(p.a)},${y(p.v)}`).join(' ')}"><title>${svgEsc_(c)}</title></polyline>`;pts.forEach(p=>svg+=`<circle class="m-point ${cls}" cx="${x(p.a)}" cy="${y(p.v)}" r="3"><title>${svgEsc_(c)} · ${p.a}: ${formatearNumero_(p.v)}</title></circle>`);});
+  svg+='</svg>';
+  const leyenda='<div class="m-career-legend">'+carreras.map((c,i)=>`<span><i class="m-legend-dot m-line-${i%8}"></i>${escapeHtml_(c)}</span>`).join('')+'</div>'; el.innerHTML=svg+leyenda;
 }
 
 function numeroMatricula_(valor){
