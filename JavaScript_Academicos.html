@@ -541,29 +541,10 @@ function renderComposicionMatriculaBase_(){
       </section>
 
       <section class="kpi-grid">
-        <article class="kpi-card">
-          <div class="kpi-label">Primer año</div>
-          <div class="kpi-value" id="kpiComposicionPrimero">—</div>
-          <div class="kpi-note">Estudiantes de primer año</div>
-        </article>
-
-        <article class="kpi-card">
-          <div class="kpi-label">Segundo año</div>
-          <div class="kpi-value" id="kpiComposicionSegundo">—</div>
-          <div class="kpi-note">Estudiantes de segundo año</div>
-        </article>
-
-        <article class="kpi-card">
-          <div class="kpi-label">Proceso de titulación</div>
-          <div class="kpi-value" id="kpiComposicionPT">—</div>
-          <div class="kpi-note">Estudiantes en proceso de titulación</div>
-        </article>
-
-        <article class="kpi-card">
-          <div class="kpi-label">Total composición</div>
-          <div class="kpi-value" id="kpiComposicionTotal">—</div>
-          <div class="kpi-note">Primer + segundo año + proceso de titulación</div>
-        </article>
+        ${kpiAcademicoHtml_('kpiComposicionPrimero','Matrícula Primer Año','dato','Cantidad de estudiantes de primer año para el período y filtros seleccionados.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiComposicionSegundo','Matrícula Segundo Año','dato','Cantidad de estudiantes de segundo año para el período y filtros seleccionados.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiComposicionPT','Matrícula P. de Titulación','dato','Cantidad de estudiantes en proceso de titulación para el período y filtros seleccionados.','Fuente: CFT Laplace')}
+        ${kpiAcademicoHtml_('kpiComposicionTotal','Total Matrícula','calculo','Total calculado como Matrícula Primer Año + Matrícula Segundo Año + Matrícula P. de Titulación.','Fuente: CFT Laplace')}
       </section>
 
       <section class="charts-grid">
