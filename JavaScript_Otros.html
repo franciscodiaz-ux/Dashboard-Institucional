@@ -121,12 +121,13 @@ function sigaResultadosHtml_(){
 }
 
 function sigaKpiHtml_(id,titulo,tipo,ayuda){
-  return `<article class="kpi-card siga-kpi-card">
-    <div class="siga-kpi-header">
-      <div class="kpi-label siga-kpi-title">${escapeHtml_(titulo)}
-        <span class="siga-info-icon" tabindex="0">i<span class="siga-info-tooltip">${escapeHtml_(ayuda)}</span></span>
+  const esCalculo = tipo === 'calculo';
+  return `<article class="kpi-card siga-kpi-card ${esCalculo ? 'kpi-type-calc' : 'kpi-type-data'}">
+    <div class="kpi-card-header">
+      <div class="kpi-label kpi-title-with-info">${escapeHtml_(titulo)}
+        <span class="kpi-info-icon" tabindex="0">i<span class="kpi-info-tooltip">${escapeHtml_(ayuda)}</span></span>
       </div>
-      <span class="siga-source-badge ${tipo==='calculo'?'siga-source-calc':'siga-source-data'}">${tipo==='calculo'?'CÁLCULO':'DATO'}</span>
+      <span class="kpi-type-badge ${esCalculo ? 'calc' : 'data'}">${esCalculo ? 'ƒx CALCULADO' : 'DATO'}</span>
     </div>
     <div class="kpi-value" id="${id}">—</div>
     <div class="kpi-note" id="${id}Nota">—</div>

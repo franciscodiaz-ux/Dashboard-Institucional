@@ -60,6 +60,76 @@ function recargarIndicadorAcademico_(tipo){
 }
 
 
+function kpiAcademicoHtml_(id,titulo,tipo,ayuda,fuente){
+  const esCalculo = tipo === 'calculo';
+  return `<article class="kpi-card ${esCalculo ? 'kpi-type-calc' : 'kpi-type-data'}">
+    <div class="kpi-card-header">
+      <div class="kpi-label kpi-title-with-info">${escapeHtml_(titulo)}
+        <span class="kpi-info-icon" tabindex="0">i<span class="kpi-info-tooltip">${escapeHtml_(ayuda)}</span></span>
+      </div>
+      <span class="kpi-type-badge ${esCalculo ? 'calc' : 'data'}">${esCalculo ? 'ƒx CALCULADO' : 'DATO'}</span>
+    </div>
+    <div class="kpi-value" id="${id}">—</div>
+    <div class="kpi-note">${escapeHtml_(fuente)}</div>
+  </article>`;
+}
+
+function normalizarKpiAcademicosPendientes_(){
+  const calculados = new Set([
+    'kpiComposicionTotal',
+    'kpiOfertaVacantesTotal',
+    'kpiRetencionPorcentaje',
+    'kpiDotacionEdad',
+    'kpiConversionPT',
+    'kpiTasaTitulacion'
+  ]);
+
+  document.querySelectorAll('.kpi-card:not(.kpi-type-data):not(.kpi-type-calc)').forEach(function(card){
+    const valor = card.querySelector('.kpi-value');
+    const id = valor ? valor.id : '';
+    const label = card.querySelector('.kpi-label');
+    const nota = card.querySelector('.kpi-note');
+    if (!label || !valor) return;
+
+    const esCalculo = calculados.has(id);
+    const ayuda = nota && nota.textContent.trim()
+      ? nota.textContent.trim()
+      : (esCalculo ? 'Indicador calculado para la selección actual.' : 'Dato correspondiente a la selección actual.');
+
+    let fuente = 'Fuente: SIES';
+    if (id.indexOf('kpiComposicion') === 0 || id.indexOf('kpiRetencion') === 0) fuente = 'Fuente: CFT Laplace';
+    if (id.indexOf('kpiConversionPT') === 0 || id.indexOf('kpiTasa') === 0) fuente = 'Fuente: SIES / CFT Laplace';
+
+    card.classList.add(esCalculo ? 'kpi-type-calc' : 'kpi-type-data');
+    label.classList.add('kpi-title-with-info');
+
+    const header = document.createElement('div');
+    header.className = 'kpi-card-header';
+    card.insertBefore(header, label);
+    header.appendChild(label);
+
+    const info = document.createElement('span');
+    info.className = 'kpi-info-icon';
+    info.tabIndex = 0;
+    info.innerHTML = 'i<span class="kpi-info-tooltip"></span>';
+    info.querySelector('.kpi-info-tooltip').textContent = ayuda;
+    label.appendChild(info);
+
+    const badge = document.createElement('span');
+    badge.className = 'kpi-type-badge ' + (esCalculo ? 'calc' : 'data');
+    badge.textContent = esCalculo ? 'ƒx CALCULADO' : 'DATO';
+    header.appendChild(badge);
+
+    if (nota) nota.textContent = fuente;
+    else {
+      const source = document.createElement('div');
+      source.className = 'kpi-note';
+      source.textContent = fuente;
+      card.appendChild(source);
+    }
+  });
+}
+
 function renderMatriculaBase_(){
   const content = document.getElementById('tabContent');
 
@@ -116,29 +186,17 @@ function renderMatriculaBase_(){
       </section>
 
       <section class="kpi-grid">
-        <article class="kpi-card">
-          <div class="kpi-label">Matrícula total</div>
-          <div class="kpi-value" id="kpiMatriculaTotal">—</div>
-          <div class="kpi-note">Suma de TOTAL MATRÍCULA</div>
-        </article>
+        ${kpiAcademicoHtml_('kpiMatriculaTotal','Matrícula total','dato','Total de estudiantes matriculados para el período y filtros seleccionados.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiCarreras','Carreras','dato','Cantidad de carreras presentes en la selección actual. Aplicar filtros no transforma el indicador en un cálculo.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiSedes','Sedes','dato','Cantidad de sedes presentes en la selección actual. Aplicar filtros no transforma el indicador en un cálculo.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiJornada','Jornada','dato','Muestra la jornada seleccionada en el filtro. Si no se selecciona una jornada, se muestra Ambas.','Fuente: SIES')}
+      </section>
 
-        <article class="kpi-card">
-          <div class="kpi-label">Registros considerados</div>
-          <div class="kpi-value" id="kpiRegistros">—</div>
-          <div class="kpi-note">Filas luego de aplicar filtros</div>
-        </article>
-
-        <article class="kpi-card">
-          <div class="kpi-label">Carreras</div>
-          <div class="kpi-value" id="kpiCarreras">—</div>
-          <div class="kpi-note">Carreras presentes en la selección</div>
-        </article>
-
-        <article class="kpi-card">
-          <div class="kpi-label">Sedes</div>
-          <div class="kpi-value" id="kpiSedes">—</div>
-          <div class="kpi-note">Sedes presentes en la selección</div>
-        </article>
+      <section class="kpi-grid">
+        ${kpiAcademicoHtml_('kpiMatriculaPrimerAno','Matrícula primer año','dato','Cantidad de estudiantes de primer año para el período y filtros seleccionados.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiMatriculaPrimerAnoPct','% primer año','calculo','Porcentaje calculado como Matrícula de primer año dividido por Matrícula total, multiplicado por 100.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiMatriculaHombresPct','Hombres','calculo','Porcentaje calculado como Matrícula de hombres dividido por Matrícula total, multiplicado por 100.','Fuente: SIES')}
+        ${kpiAcademicoHtml_('kpiMatriculaMujeresPct','Mujeres','calculo','Porcentaje calculado como Matrícula de mujeres dividido por Matrícula total, multiplicado por 100.','Fuente: SIES')}
       </section>
 
       <section class="charts-grid">
@@ -173,6 +231,7 @@ function renderMatriculaBase_(){
     </main>
   `;
 
+  normalizarKpiAcademicosPendientes_();
   configurarToggleActualizacion_();
   configurarPanelActualizacion_('matricula');
 }
@@ -301,17 +360,39 @@ function actualizarKPIsMatricula_(registros){
     (suma, registro) => suma + numeroMatricula_(registro['TOTAL MATRÍCULA']),
     0
   );
+  const primerAno = registros.reduce(
+    (suma, registro) => suma + numeroMatricula_(registro['TOTAL MATRÍCULA PRIMER AÑO']),
+    0
+  );
+  const hombres = registros.reduce(
+    (suma, registro) => suma + numeroMatricula_(registro['TOTAL MATRÍCULA HOMBRES']),
+    0
+  );
+  const mujeres = registros.reduce(
+    (suma, registro) => suma + numeroMatricula_(registro['TOTAL MATRÍCULA MUJERES']),
+    0
+  );
+  const filtros = obtenerFiltrosMatricula_();
+  const jornada = filtros.jornada
+    ? String(filtros.jornada).toLowerCase().replace(/^./, c => c.toUpperCase())
+    : 'Ambas';
 
   asignarTexto_('kpiMatriculaTotal', formatearNumero_(total));
-  asignarTexto_('kpiRegistros', formatearNumero_(registros.length));
-  asignarTexto_(
-    'kpiCarreras',
-    formatearNumero_(cantidadUnicos_(registros, 'NOMBRE CARRERA'))
-  );
-  asignarTexto_(
-    'kpiSedes',
-    formatearNumero_(cantidadUnicos_(registros, 'NOMBRE SEDE'))
-  );
+  asignarTexto_('kpiCarreras', formatearNumero_(cantidadUnicos_(registros, 'NOMBRE CARRERA')));
+  asignarTexto_('kpiSedes', formatearNumero_(cantidadUnicos_(registros, 'NOMBRE SEDE')));
+  asignarTexto_('kpiJornada', jornada);
+  asignarTexto_('kpiMatriculaPrimerAno', formatearNumero_(primerAno));
+  asignarTexto_('kpiMatriculaPrimerAnoPct', formatearPorcentajeMatricula_(primerAno, total));
+  asignarTexto_('kpiMatriculaHombresPct', formatearPorcentajeMatricula_(hombres, total));
+  asignarTexto_('kpiMatriculaMujeresPct', formatearPorcentajeMatricula_(mujeres, total));
+}
+
+function formatearPorcentajeMatricula_(parte,total){
+  if (!total) return '—';
+  return ((parte / total) * 100).toLocaleString('es-CL', {
+    minimumFractionDigits:1,
+    maximumFractionDigits:1
+  }) + '%';
 }
 
 function agregarMatriculaPorCampo_(registros, campo, ordenarAno){
@@ -453,6 +534,7 @@ function renderComposicionMatriculaBase_(){
     </main>
   `;
 
+  normalizarKpiAcademicosPendientes_();
   configurarToggleActualizacion_();
   configurarPanelActualizacion_('composicion_matricula');
 }
@@ -763,6 +845,7 @@ function renderOfertaBase_(){
     </main>
   `;
 
+  normalizarKpiAcademicosPendientes_();
   configurarToggleActualizacion_();
   configurarPanelActualizacion_('oferta');
 }
@@ -1042,6 +1125,8 @@ function renderRetencionBase_(){
       </div>
     </main>
   `;
+
+  normalizarKpiAcademicosPendientes_();
 }
 
 function cargarRetencionDesdeComposicion_(){
@@ -1498,6 +1583,7 @@ function renderTituladosBase_(){
     </main>
   `;
 
+  normalizarKpiAcademicosPendientes_();
   configurarToggleActualizacion_();
   configurarPanelActualizacion_('titulados');
 }
@@ -1823,6 +1909,7 @@ function renderDotacionBase_(){
     </main>
   `;
 
+  normalizarKpiAcademicosPendientes_();
   configurarToggleActualizacion_();
   configurarPanelActualizacion_('dotacion');
 }
@@ -2193,6 +2280,8 @@ function renderTasaTitulacionBase_(){
       </div>
     </main>
   `;
+
+  normalizarKpiAcademicosPendientes_();
 }
 function cargarTasaTitulacion_(){
   google.script.run

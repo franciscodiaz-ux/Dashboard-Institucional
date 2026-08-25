@@ -208,9 +208,16 @@
   }
 
   function tarjeta_(titulo, valor, tipo, nota){
-    return '<div class="kpi-card fin-kpi ' + tipo + '">' +
-      '<div class="kpi-label">' +
-        titulo + etiquetaTipo_(tipo) +
+    var esCalculo = tipo === 'calc';
+    var ayuda = esCalculo
+      ? 'Indicador calculado para el período seleccionado. ' + nota
+      : 'Dato del período seleccionado. ' + titulo + '.';
+    return '<div class="kpi-card fin-kpi ' + tipo + ' ' + (esCalculo ? 'kpi-type-calc' : 'kpi-type-data') + '">' +
+      '<div class="kpi-card-header">' +
+        '<div class="kpi-label kpi-title-with-info">' + titulo +
+          '<span class="kpi-info-icon" tabindex="0">i<span class="kpi-info-tooltip">' + ayuda + '</span></span>' +
+        '</div>' +
+        '<span class="kpi-type-badge ' + (esCalculo ? 'calc' : 'data') + '">' + (esCalculo ? 'ƒx CALCULADO' : 'DATO') + '</span>' +
       '</div>' +
       '<div class="kpi-value">' + valor + '</div>' +
       '<div class="kpi-note">' + nota + '</div>' +

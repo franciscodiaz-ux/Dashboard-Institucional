@@ -1214,3 +1214,20 @@
   .siga-modal-summary{margin:0 0 12px;font-size:12px;color:var(--muted);}
   .siga-modal-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:4px;}
 </style>
+
+
+<!-- Estándar institucional de tarjetas KPI -->
+<style>
+  .kpi-card.kpi-type-data{border-left:4px solid var(--navy);}
+  .kpi-card.kpi-type-calc{border-left:4px solid var(--amber);}
+  .kpi-card .kpi-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
+  .kpi-card .kpi-title-with-info{display:flex;align-items:center;gap:6px;min-width:0;}
+  .kpi-card .kpi-type-badge{flex-shrink:0;padding:3px 6px;border-radius:3px;font-size:9px;font-weight:700;line-height:1.2;letter-spacing:.06em;text-transform:uppercase;}
+  .kpi-card .kpi-type-badge.data{background:var(--navy-soft);color:var(--navy);}
+  .kpi-card .kpi-type-badge.calc{background:var(--amber-soft);color:var(--amber);}
+  .kpi-card .kpi-info-icon{position:relative;display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border:1px solid #80908A;border-radius:50%;font-family:Georgia,serif;font-size:10px;font-weight:700;font-style:italic;text-transform:none;letter-spacing:0;color:var(--ink-muted);cursor:help;flex:0 0 auto;}
+  .kpi-card .kpi-info-icon:hover,.kpi-card .kpi-info-icon:focus{border-color:var(--navy);color:var(--navy);outline:none;}
+  .kpi-card .kpi-info-tooltip{visibility:hidden;opacity:0;position:absolute;z-index:90;top:22px;left:-8px;width:250px;padding:10px 12px;border-radius:4px;background:var(--navy);color:#fff;font-family:'Calibri',sans-serif;font-size:11.5px;font-weight:400;line-height:1.4;text-transform:none;letter-spacing:0;box-shadow:0 3px 12px rgba(0,0,0,.18);transition:opacity .12s ease;}
+  .kpi-card .kpi-info-icon:hover .kpi-info-tooltip,.kpi-card .kpi-info-icon:focus .kpi-info-tooltip{visibility:visible;opacity:1;}
+  .kpi-card .kpi-note{line-height:1.35;}
+</style>

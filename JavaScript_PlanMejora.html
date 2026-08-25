@@ -311,11 +311,12 @@ body.pm-modal-open{overflow:hidden}
 
     var html =
       '<div class="kpi-grid">' +
-        kpi_('Actividades', registros.length, 'Según filtros') +
+        kpi_('Actividades', registros.length, 'Según filtros', 'dato') +
         kpi_(
           'Criterios',
           Object.keys(criterios).length,
-          'Criterios CNA cubiertos'
+          'Criterios CNA cubiertos',
+          'dato'
         ) +
         kpi_(
           'Recursos estimados',
@@ -325,7 +326,8 @@ body.pm-modal-open{overflow:hidden}
               {minimumFractionDigits:1, maximumFractionDigits:1}
             ) +
             ' MM',
-          'Suma de actividades filtradas'
+          'Suma de actividades filtradas',
+          'calculo'
         ) +
         kpi_(
           'Avance',
@@ -335,7 +337,8 @@ body.pm-modal-open{overflow:hidden}
                 'es-CL',
                 {maximumFractionDigits:1}
               ) + '%',
-          'Promedio de actividades con avance informado'
+          'Promedio de actividades con avance informado',
+          'calculo'
         ) +
       '</div>';
 
@@ -406,11 +409,20 @@ body.pm-modal-open{overflow:hidden}
       });
   }
 
-  function kpi_(label, valor, nota){
-    return '<div class="kpi-card">' +
-      '<div class="kpi-label">' + label + '</div>' +
+  function kpi_(label, valor, nota, tipo){
+    var esCalculo = tipo === 'calculo';
+    var ayuda = esCalculo
+      ? 'Indicador calculado. ' + nota + '.'
+      : 'Dato obtenido para la selección actual. ' + nota + '.';
+    return '<div class="kpi-card ' + (esCalculo ? 'kpi-type-calc' : 'kpi-type-data') + '">' +
+      '<div class="kpi-card-header">' +
+        '<div class="kpi-label kpi-title-with-info">' + label +
+          '<span class="kpi-info-icon" tabindex="0">i<span class="kpi-info-tooltip">' + ayuda + '</span></span>' +
+        '</div>' +
+        '<span class="kpi-type-badge ' + (esCalculo ? 'calc' : 'data') + '">' + (esCalculo ? 'ƒx CALCULADO' : 'DATO') + '</span>' +
+      '</div>' +
       '<div class="kpi-value">' + valor + '</div>' +
-      '<div class="kpi-note">' + nota + '</div>' +
+      '<div class="kpi-note">Fuente: plan_mejora.csv</div>' +
     '</div>';
   }
 
